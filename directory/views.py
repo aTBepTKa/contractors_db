@@ -1,6 +1,6 @@
 from django.contrib.auth.decorators import login_required
 from django.db import models
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, render
 
 from .models import Executor, Project, ProjectSelection, Specialty
 
@@ -203,3 +203,55 @@ def executor_list(request):
     }
 
     return render(request, "directory/executor_list.html", context)
+
+@login_required
+def executor_detail(request, executor_id):
+    executor = get_object_or_404(
+        Executor.objects
+        .select_related("status", "employment_type")
+        .prefetch_related(
+            "executor_specialties__specialty",
+            "comments__project",
+            "comments__user",
+            "project_selections__project",
+            "project_selections__specialty",
+            "project_selections__status",
+            "project_selections__negotiations",
+        ),
+        id=executor_id,
+    )
+
+    specialties = [
+        item.specialty
+        for item in executor.executor_specialties.all()
+    ]
+
+    comments = executor.comments.all().order_by("-created_at")
+
+    selections = sorted(
+        executor.project_selections.all(),
+        key=lambda item: item.updated_at,
+        reverse=True,
+    )
+
+    selection_items = []
+
+    for selection in selections:
+        negotiations = selection.negotiations.all().order_by("-event_date", "-created_at")
+
+        selection_items.append(
+            {
+                "selection": selection,
+                "offer_amount": format_money(selection.offer_amount),
+                "negotiations": negotiations,
+            }
+        )
+
+    context = {
+        "executor": executor,
+        "specialties": specialties,
+        "comments": comments,
+        "selection_items": selection_items,
+    }
+
+    return render(request, "directory/executor_detail.html", context)

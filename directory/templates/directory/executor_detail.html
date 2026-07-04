@@ -1,0 +1,160 @@
+{% extends "directory/base.html" %}
+
+{% block title %}{{ executor }} — Исполнитель{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>{{ executor }}</h1>
+
+    <p class="muted">
+        Карточка исполнителя: контакты, специальности, статус, Revit, комментарии и история участия в проектах.
+    </p>
+
+    <p>
+        <a class="button" href="/executors/">← К списку исполнителей</a>
+        <a class="button" href="/admin/directory/executor/{{ executor.id }}/change/">Открыть в админке</a>
+    </p>
+</div>
+
+<div class="grid">
+    <div class="card">
+        <h2>Контакты</h2>
+
+        <p><strong>Телефон:</strong> {{ executor.phone|default:"—" }}</p>
+        <p><strong>Почта:</strong> {{ executor.email|default:"—" }}</p>
+        <p><strong>Мессенджер:</strong> {{ executor.messenger|default:"—" }}</p>
+        <p><strong>Тип занятости:</strong> {{ executor.employment_type|default:"—" }}</p>
+    </div>
+
+    <div class="card">
+        <h2>Статус</h2>
+
+        <p><strong>Статус:</strong> {{ executor.status }}</p>
+
+        {% if executor.status_comment %}
+            <p>{{ executor.status_comment }}</p>
+        {% else %}
+            <p class="muted">Комментарий к статусу не заполнен.</p>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <h2>Revit</h2>
+
+        <p>
+            <strong>Работает в Revit:</strong>
+            {% if executor.works_in_revit %}
+                Да
+            {% else %}
+                Нет
+            {% endif %}
+        </p>
+
+        {% if executor.revit_comment %}
+            <p>{{ executor.revit_comment }}</p>
+        {% else %}
+            <p class="muted">Комментарий по Revit не заполнен.</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card">
+    <h2>Специальности</h2>
+
+    {% if specialties %}
+        {% for specialty in specialties %}
+            <span class="badge">{{ specialty.code }} — {{ specialty.name }}</span>
+        {% endfor %}
+    {% else %}
+        <p>Специальности не указаны.</p>
+    {% endif %}
+</div>
+
+<div class="card">
+    <h2>Общий комментарий</h2>
+
+    {% if executor.general_comment %}
+        <p>{{ executor.general_comment }}</p>
+    {% else %}
+        <p class="muted">Общий комментарий не заполнен.</p>
+    {% endif %}
+</div>
+
+<div class="card">
+    <h2>История участия в проектах</h2>
+
+    {% if selection_items %}
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Проект</th>
+                        <th>Специальность</th>
+                        <th>Статус</th>
+                        <th>Сумма КП</th>
+                        <th>Комментарий</th>
+                        <th>Переговоры</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in selection_items %}
+                        <tr>
+                            <td>
+                                <strong>{{ item.selection.project }}</strong><br>
+                                <a class="small" href="/admin/directory/project/{{ item.selection.project.id }}/change/">
+                                    Проект в админке
+                                </a>
+                            </td>
+
+                            <td>{{ item.selection.specialty }}</td>
+                            <td>{{ item.selection.status }}</td>
+                            <td>{{ item.offer_amount|default:"—" }}</td>
+                            <td>{{ item.selection.comment|default:"—" }}</td>
+
+                            <td>
+                                {% if item.negotiations %}
+                                    {% for negotiation in item.negotiations %}
+                                        <div class="timeline-item">
+                                            <strong>{{ negotiation.event_date|date:"d.m.Y" }}</strong><br>
+                                            {{ negotiation.comment }}<br>
+                                            <span class="small muted">{{ negotiation.user }}</span>
+                                        </div>
+                                    {% endfor %}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p>Исполнитель пока не участвует в подборах по проектам.</p>
+    {% endif %}
+</div>
+
+<div class="card">
+    <h2>Комментарии пользователей</h2>
+
+    {% if comments %}
+        <div class="timeline">
+            {% for comment in comments %}
+                <div class="timeline-item">
+                    <strong>{{ comment.created_at|date:"d.m.Y H:i" }}</strong>
+                    — {{ comment.user }}
+
+                    {% if comment.project %}
+                        <br>
+                        <span class="small muted">Проект: {{ comment.project }}</span>
+                    {% endif %}
+
+                    <p>{{ comment.comment }}</p>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>Комментариев пока нет.</p>
+    {% endif %}
+</div>
+{% endblock %}

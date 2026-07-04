@@ -66,11 +66,15 @@
                     {% for item in items %}
                         <tr class="{% if item.executor.status.name != 'Активный' %}inactive{% endif %}">
                             <td>
-                                <strong>{{ item.executor }}</strong><br>
-                                <a class="small" href="/admin/directory/executor/{{ item.executor.id }}/change/">
-                                    Открыть в админке
-                                </a>
-                            </td>
+    <strong>{{ item.executor }}</strong><br>
+    <a class="small" href="/executors/{{ item.executor.id }}/">
+        Открыть карточку
+    </a>
+    <br>
+    <a class="small" href="/admin/directory/executor/{{ item.executor.id }}/change/">
+        Открыть в админке
+    </a>
+</td>
 
                             <td>{{ item.specialties|default:"—" }}</td>
                             <td>{{ item.executor.phone|default:"—" }}</td>

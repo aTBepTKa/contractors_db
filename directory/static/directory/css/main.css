@@ -212,3 +212,29 @@ button:hover,
         margin-right: 14px;
     }
 }
+
+.badge {
+    display: inline-block;
+    background: #eef2ff;
+    border: 1px solid #c7d2fe;
+    color: #1e3a8a;
+    border-radius: 999px;
+    padding: 6px 10px;
+    margin: 4px 6px 4px 0;
+    font-size: 13px;
+}
+
+.timeline {
+    display: grid;
+    gap: 10px;
+}
+
+.timeline-item {
+    border-left: 3px solid #cbd5e1;
+    padding-left: 10px;
+    margin-bottom: 10px;
+}
+
+.card p {
+    line-height: 1.45;
+}
