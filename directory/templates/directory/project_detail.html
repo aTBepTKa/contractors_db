@@ -211,76 +211,101 @@
             <table>
                 <thead>
                     <tr>
-                        <th>Специальность</th>
-                        <th>Исполнитель</th>
-                        <th>Контакты</th>
-                        <th>Revit</th>
-                        <th>Статус подбора</th>
-                        <th>Сумма КП</th>
-                        <th>Комментарий</th>
-                        <th>Переговоры</th>
+                        <th class="col-specialty">Специальность</th>
+                        <th class="col-executor">Исполнитель</th>
+                        <th class="col-contacts">Контакты</th>
+                        <th class="col-revit">Revit</th>
+                        <th class="col-status">Статус</th>
+                        <th class="col-amount">Сумма КП</th>
+                        <th class="col-comment">Комментарий</th>
+                        <th class="col-negotiations">Переговоры</th>
+                        <th class="col-save">Сохранить</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for item in selection_items %}
-                        <tr class="{% if item.selection.executor.status.name != 'Активный' %}inactive{% endif %}">
-                            <td>
-                                <strong>{{ item.selection.specialty.code }}</strong><br>
-                                <span class="small muted">{{ item.selection.specialty.name }}</span>
-                            </td>
+                {% for item in selection_items %}
+                    <tr class="{% if item.selection.executor.status.name != 'Активный' %}inactive{% endif %}">
+                        <td class="col-specialty">
+                            <strong>{{ item.selection.specialty.code }}</strong><br>
+                            <span class="small muted">{{ item.selection.specialty.name }}</span>
+                        </td>
 
-                            <td>
-                                <strong>{{ item.selection.executor }}</strong><br>
-                                <a class="small" href="/executors/{{ item.selection.executor.id }}/">
-                                    Карточка исполнителя
-                                </a>
+                        <td class="col-executor">
+                            <strong>{{ item.selection.executor }}</strong><br>
+                            <a class="small" href="/executors/{{ item.selection.executor.id }}/">
+                                Карточка исполнителя
+                            </a>
+                            <br>
+                            <a class="small" href="/admin/directory/projectselection/{{ item.selection.id }}/change/">
+                                Строка подбора в админке
+                            </a>
+                        </td>
+
+                        <td class="col-contacts">
+                            {% if item.selection.executor.phone %}
+                                {{ item.selection.executor.phone }}<br>
+                            {% endif %}
+
+                            {% if item.selection.executor.email %}
+                                {{ item.selection.executor.email }}<br>
+                            {% endif %}
+
+                            {% if item.selection.executor.messenger %}
+                                {{ item.selection.executor.messenger }}
+                            {% endif %}
+
+                            {% if not item.selection.executor.phone and not item.selection.executor.email and not item.selection.executor.messenger %}
+                                —
+                            {% endif %}
+                        </td>
+
+                        <td class="col-revit">
+                            {% if item.selection.executor.works_in_revit %}
+                                Да
+                            {% else %}
+                                Нет
+                            {% endif %}
+
+                            {% if item.selection.executor.revit_comment %}
                                 <br>
-                                <a class="small" href="/admin/directory/projectselection/{{ item.selection.id }}/change/">
-                                    Строка подбора в админке
-                                </a>
+                                <span class="small muted">
+                                    {{ item.selection.executor.revit_comment }}
+                                </span>
+                            {% endif %}
+                        </td>
+
+                        <form method="post" action="/selections/{{ item.selection.id }}/update/">
+                            {% csrf_token %}
+
+                            <td class="col-status">
+                                <select name="status" class="compact-select">
+                                    {% for status in selection_statuses %}
+                                        <option value="{{ status.id }}"
+                                            {% if item.selection.status_id == status.id %}selected{% endif %}>
+                                            {{ status.name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
                             </td>
 
-                            <td>
-                                {% if item.selection.executor.phone %}
-                                    {{ item.selection.executor.phone }}<br>
-                                {% endif %}
-
-                                {% if item.selection.executor.email %}
-                                    {{ item.selection.executor.email }}<br>
-                                {% endif %}
-
-                                {% if item.selection.executor.messenger %}
-                                    {{ item.selection.executor.messenger }}
-                                {% endif %}
-
-                                {% if not item.selection.executor.phone and not item.selection.executor.email and not item.selection.executor.messenger %}
-                                    —
-                                {% endif %}
+                            <td class="col-amount">
+                                <input
+                                    type="text"
+                                    name="offer_amount"
+                                    value="{{ item.selection.offer_amount|default:'' }}"
+                                    placeholder="200000"
+                                    class="compact-input amount-input"
+                                >
                             </td>
 
-                            <td>
-                                {% if item.selection.executor.works_in_revit %}
-                                    Да
-                                {% else %}
-                                    Нет
-                                {% endif %}
-
-                                {% if item.selection.executor.revit_comment %}
-                                    <br>
-                                    <span class="small muted">
-                                        {{ item.selection.executor.revit_comment }}
-                                    </span>
-                                {% endif %}
+                            <td class="col-comment">
+                                <textarea name="comment" rows="2" class="compact-textarea">{{ item.selection.comment }}</textarea>
                             </td>
 
-                            <td>{{ item.selection.status }}</td>
-                            <td>{{ item.offer_amount|default:"—" }}</td>
-                            <td>{{ item.selection.comment|default:"—" }}</td>
-
-                            <td>
+                            <td class="col-negotiations">
                                 {% if item.negotiations %}
                                     {% for negotiation in item.negotiations %}
-                                        <div class="timeline-item">
+                                        <div class="timeline-item compact-timeline">
                                             <strong>{{ negotiation.event_date|date:"d.m.Y" }}</strong><br>
                                             {{ negotiation.comment }}<br>
                                             <span class="small muted">{{ negotiation.user }}</span>
@@ -290,8 +315,13 @@
                                     —
                                 {% endif %}
                             </td>
-                        </tr>
-                    {% endfor %}
+
+                            <td class="col-save">
+                                <button type="submit" class="compact-button">OK</button>
+                            </td>
+                        </form>
+                    </tr>
+                {% endfor %}
                 </tbody>
             </table>
         </div>

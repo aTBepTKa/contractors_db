@@ -328,3 +328,144 @@ button:hover,
         width: 100%;
     }
 }
+
+/* Таблица подбора исполнителей — режим одной строки */
+.table-wrap table {
+    width: 100%;
+    table-layout: fixed;
+}
+
+.table-wrap th,
+.table-wrap td {
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+/* Ширины колонок в процентах, чтобы таблица гарантированно помещалась */
+.col-specialty {
+    width: 9%;
+}
+
+.col-executor {
+    width: 13%;
+}
+
+.col-contacts {
+    width: 12%;
+}
+
+.col-revit {
+    width: 7%;
+}
+
+.col-status {
+    width: 10%;
+}
+
+.col-amount {
+    width: 8%;
+    text-align: right;
+}
+
+.col-comment {
+    width: 16%;
+}
+
+.col-negotiations {
+    width: 17%;
+}
+
+.col-save {
+    width: 8%;
+    text-align: center;
+}
+
+/* Компактные поля редактирования */
+.compact-select,
+.compact-input,
+.compact-textarea {
+    width: 100%;
+    max-width: 100%;
+    font-size: 13px;
+    box-sizing: border-box;
+}
+
+.compact-select {
+    padding: 5px 6px;
+}
+
+.compact-input {
+    padding: 5px 6px;
+}
+
+.amount-input {
+    text-align: right;
+}
+
+.compact-textarea {
+    min-height: 38px;
+    max-height: 70px;
+    resize: vertical;
+    padding: 5px 6px;
+}
+
+/* Кнопка сохранения */
+.compact-button {
+    padding: 6px 8px;
+    min-width: 0;
+    width: 100%;
+    font-size: 13px;
+}
+
+/* Уплотняем строки только в таблицах */
+.table-wrap th,
+.table-wrap td {
+    padding: 7px 8px;
+}
+
+/* Переговоры компактнее */
+.compact-timeline {
+    margin-bottom: 5px;
+    padding-left: 7px;
+}
+
+/* Revit-комментарий делаем компактным */
+.col-revit .small {
+    font-size: 11px;
+    line-height: 1.25;
+}
+
+/* Контакты компактнее */
+.col-contacts {
+    font-size: 13px;
+}
+
+/* На узких экранах всё равно разрешаем горизонтальный скролл как страховку */
+@media (max-width: 1100px) {
+    .table-wrap {
+        overflow-x: auto;
+    }
+
+    .table-wrap table {
+        min-width: 1000px;
+    }
+}
+
+.col-negotiations {
+    font-size: 12px;
+    line-height: 1.25;
+}
+
+.col-negotiations .timeline-item {
+    margin-bottom: 4px;
+    padding-left: 6px;
+}
+
+.col-negotiations .small {
+    font-size: 11px;
+}
+
+.col-comment textarea {
+    min-height: 42px;
+    max-height: 60px;
+}

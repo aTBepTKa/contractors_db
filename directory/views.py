@@ -2,7 +2,6 @@ from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError, models
 from django.shortcuts import get_object_or_404, redirect, render
 
-from .forms import ProjectSelectionForm
 from .models import Executor, ObjectType, Project, ProjectSelection, SelectionStatus, Specialty
 
 @login_required
@@ -346,7 +345,6 @@ def project_detail(request, project_id):
         id=project_id,
     )
 
-    form_error = None
     add_candidate_error = None
 
     selected_specialty_id = request.GET.get("specialty")
@@ -388,28 +386,8 @@ def project_detail(request, project_id):
             selected_specialty_id = specialty_id
 
         else:
-            form = ProjectSelectionForm(request.POST)
-
-            if form.is_valid():
-                selection = form.save(commit=False)
-                selection.project = project
-
-                try:
-                    selection.save()
-                    return redirect("project_detail", project_id=project.id)
-                except IntegrityError:
-                    form_error = (
-                        "Такая строка подбора уже есть: "
-                        "проект + специальность + исполнитель должны быть уникальны."
-                    )
-    else:
-        form = ProjectSelectionForm()
-
-    if request.method == "POST" and request.POST.get("action") != "add_candidate":
-        pass
-    else:
-        form = ProjectSelectionForm()
-
+            return redirect("project_detail", project_id=project.id)
+    
     if selected_specialty_id:
         selected_specialty = Specialty.objects.filter(id=selected_specialty_id).first()
 
@@ -510,13 +488,44 @@ def project_detail(request, project_id):
         "selection_items": selection_items,
         "selections_count": len(selection_items),
         "total_offer_amount": format_money(total_offer_amount),
-        "form": form,
-        "form_error": form_error,
         "add_candidate_error": add_candidate_error,
         "specialties": Specialty.objects.filter(is_active=True).order_by("code"),
         "selected_specialty_id": selected_specialty_id,
         "selected_specialty": selected_specialty,
         "candidate_items": candidate_items,
+        "selection_statuses": SelectionStatus.objects.filter(is_active=True).order_by("name"),
     }
 
     return render(request, "directory/project_detail.html", context)
+
+@login_required
+def update_project_selection(request, selection_id):
+    selection = get_object_or_404(
+        ProjectSelection.objects.select_related("project"),
+        id=selection_id,
+    )
+
+    if request.method != "POST":
+        return redirect("project_detail", project_id=selection.project.id)
+
+    status_id = request.POST.get("status")
+    offer_amount_raw = request.POST.get("offer_amount", "").strip()
+    comment = request.POST.get("comment", "").strip()
+
+    status = SelectionStatus.objects.filter(id=status_id).first()
+
+    if status:
+        selection.status = status
+
+    if offer_amount_raw:
+        try:
+            selection.offer_amount = int(offer_amount_raw.replace(" ", ""))
+        except ValueError:
+            pass
+    else:
+        selection.offer_amount = None
+
+    selection.comment = comment
+    selection.save()
+
+    return redirect("project_detail", project_id=selection.project.id)
