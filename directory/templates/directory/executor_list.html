@@ -1,0 +1,135 @@
+{% extends "directory/base.html" %}
+
+{% block title %}Исполнители{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>Исполнители</h1>
+    <p class="muted">
+        Общий список исполнителей с фильтрацией по специальности, статусу и поиском по контактам.
+    </p>
+</div>
+
+<div class="form-panel">
+    <form method="get">
+        <label for="q">Поиск:</label>
+        <input
+            type="text"
+            id="q"
+            name="q"
+            value="{{ search_query }}"
+            placeholder="ФИО, телефон, почта, комментарий"
+            style="width: 280px;"
+        >
+
+        <label for="specialty">Специальность:</label>
+        <select name="specialty" id="specialty">
+            <option value="">Все специальности</option>
+            {% for specialty in specialties %}
+                <option value="{{ specialty.id }}"
+                    {% if selected_specialty_id == specialty.id|stringformat:"s" %}selected{% endif %}>
+                    {{ specialty.code }} — {{ specialty.name }}
+                </option>
+            {% endfor %}
+        </select>
+
+        <label>
+            <input type="checkbox" name="show_all" value="1" {% if show_all %}checked{% endif %}>
+            Показать всех
+        </label>
+
+        <button type="submit">Применить</button>
+        <a class="button" href="/executors/">Сбросить</a>
+    </form>
+</div>
+
+<div class="card">
+    <h2>Найдено: {{ items|length }}</h2>
+
+    {% if items %}
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ФИО</th>
+                        <th>Специальности</th>
+                        <th>Телефон</th>
+                        <th>Почта</th>
+                        <th>Мессенджер</th>
+                        <th>Revit</th>
+                        <th>Статус</th>
+                        <th>Последние проекты</th>
+                        <th>Последний комментарий</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                        <tr class="{% if item.executor.status.name != 'Активный' %}inactive{% endif %}">
+                            <td>
+                                <strong>{{ item.executor }}</strong><br>
+                                <a class="small" href="/admin/directory/executor/{{ item.executor.id }}/change/">
+                                    Открыть в админке
+                                </a>
+                            </td>
+
+                            <td>{{ item.specialties|default:"—" }}</td>
+                            <td>{{ item.executor.phone|default:"—" }}</td>
+                            <td>{{ item.executor.email|default:"—" }}</td>
+                            <td>{{ item.executor.messenger|default:"—" }}</td>
+
+                            <td>
+                                {% if item.executor.works_in_revit %}
+                                    Да
+                                {% else %}
+                                    Нет
+                                {% endif %}
+
+                                {% if item.executor.revit_comment %}
+                                    <br>
+                                    <span class="small muted">
+                                        {{ item.executor.revit_comment }}
+                                    </span>
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                {{ item.executor.status }}
+
+                                {% if item.executor.status_comment %}
+                                    <br>
+                                    <span class="small muted">
+                                        {{ item.executor.status_comment }}
+                                    </span>
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                {% if item.last_projects %}
+                                    {% for project in item.last_projects %}
+                                        {{ project }}<br>
+                                    {% endfor %}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                {% if item.last_comment %}
+                                    {{ item.last_comment.comment }}<br>
+                                    <span class="small muted">
+                                        {{ item.last_comment.created_at|date:"d.m.Y H:i" }}
+                                    </span>
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p>Исполнители не найдены.</p>
+    {% endif %}
+</div>
+{% endblock %}

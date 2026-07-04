@@ -2,11 +2,13 @@
 
 <!DOCTYPE html>
 <html lang="ru">
+
 <head>
     <meta charset="UTF-8">
     <title>{% block title %}База исполнителей{% endblock %}</title>
     <link rel="stylesheet" href="{% static 'directory/css/main.css' %}">
 </head>
+
 <body>
     <header class="header">
         <div class="header-inner">
@@ -17,6 +19,7 @@
             <nav class="header-nav">
                 <a href="/">Главная</a>
                 <a href="/search/">Поиск</a>
+                <a href="/executors/">Исполнители</a>
                 <a href="/admin/">Админка</a>
             </nav>
         </div>
@@ -26,4 +29,5 @@
         {% block content %}{% endblock %}
     </main>
 </body>
+
 </html>

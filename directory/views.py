@@ -1,4 +1,5 @@
 from django.contrib.auth.decorators import login_required
+from django.db import models
 from django.shortcuts import render
 
 from .models import Executor, Project, ProjectSelection, Specialty
@@ -110,3 +111,95 @@ def executor_search(request):
     }
 
     return render(request, "directory/executor_search.html", context)
+
+@login_required
+def executor_list(request):
+    show_all = request.GET.get("show_all") == "1"
+    specialty_id = request.GET.get("specialty")
+    search_query = request.GET.get("q", "").strip()
+
+    executors = (
+        Executor.objects
+        .select_related("status", "employment_type")
+        .prefetch_related(
+            "executor_specialties__specialty",
+            "project_selections__project",
+            "project_selections__specialty",
+            "project_selections__status",
+            "comments",
+        )
+        .order_by("last_name", "first_name", "middle_name")
+    )
+
+    if not show_all:
+        executors = executors.filter(status__name="Активный")
+
+    selected_specialty = None
+
+    if specialty_id:
+        selected_specialty = Specialty.objects.filter(id=specialty_id).first()
+
+        if selected_specialty:
+            executors = executors.filter(
+                executor_specialties__specialty=selected_specialty
+            )
+
+    if search_query:
+        executors = executors.filter(
+            models.Q(last_name__icontains=search_query)
+            | models.Q(first_name__icontains=search_query)
+            | models.Q(middle_name__icontains=search_query)
+            | models.Q(phone__icontains=search_query)
+            | models.Q(email__icontains=search_query)
+            | models.Q(messenger__icontains=search_query)
+            | models.Q(general_comment__icontains=search_query)
+        )
+
+    executors = executors.distinct()
+
+    result_items = []
+
+    for executor in executors:
+        specialties_text = ", ".join(
+            item.specialty.code
+            for item in executor.executor_specialties.all()
+        )
+
+        selections = sorted(
+            executor.project_selections.all(),
+            key=lambda item: item.updated_at,
+            reverse=True,
+        )
+
+        last_projects = []
+        seen_project_ids = set()
+
+        for selection in selections:
+            if selection.project_id not in seen_project_ids:
+                last_projects.append(selection.project.name)
+                seen_project_ids.add(selection.project_id)
+
+            if len(last_projects) >= 3:
+                break
+
+        last_comment = executor.comments.all().order_by("-created_at").first()
+
+        result_items.append(
+            {
+                "executor": executor,
+                "specialties": specialties_text,
+                "last_projects": last_projects,
+                "last_comment": last_comment,
+            }
+        )
+
+    context = {
+        "items": result_items,
+        "specialties": Specialty.objects.filter(is_active=True).order_by("code"),
+        "selected_specialty_id": specialty_id,
+        "selected_specialty": selected_specialty,
+        "show_all": show_all,
+        "search_query": search_query,
+    }
+
+    return render(request, "directory/executor_list.html", context)
