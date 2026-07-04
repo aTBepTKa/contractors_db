@@ -221,6 +221,7 @@ def executor_detail(request, executor_id):
             "comments__project",
             "comments__user",
             "project_selections__project",
+            "project_selections__project__object_type",
             "project_selections__specialty",
             "project_selections__status",
             "project_selections__negotiations",

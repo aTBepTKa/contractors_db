@@ -101,6 +101,27 @@
                         <tr>
                             <td>
                                 <strong>{{ item.selection.project }}</strong><br>
+
+                                <span class="small muted">
+                                    Тип: {{ item.selection.project.object_type|default:"—" }}
+                                </span>
+                                <br>
+
+                                <span class="small muted">
+                                    Площадь:
+                                    {% if item.selection.project.area %}
+                                        {{ item.selection.project.area }} м²
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </span>
+                                <br>
+
+                                <a class="small" href="/projects/{{ item.selection.project.id }}/">
+                                    Карточка проекта
+                                </a>
+                                <br>
+
                                 <a class="small" href="/admin/directory/project/{{ item.selection.project.id }}/change/">
                                     Проект в админке
                                 </a>
