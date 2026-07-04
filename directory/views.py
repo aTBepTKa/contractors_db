@@ -1,8 +1,18 @@
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 
-from .models import Executor, ExecutorStatus, Specialty
+from .models import Executor, Project, ProjectSelection, Specialty
 
+@login_required
+def home(request):
+    context = {
+        "executors_count": Executor.objects.count(),
+        "projects_count": Project.objects.count(),
+        "selections_count": ProjectSelection.objects.count(),
+        "specialties_count": Specialty.objects.count(),
+    }
+
+    return render(request, "directory/home.html", context)
 
 def format_money(value):
     if value is None:

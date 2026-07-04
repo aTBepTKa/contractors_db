@@ -1,0 +1,29 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}База исполнителей{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'directory/css/main.css' %}">
+</head>
+<body>
+    <header class="header">
+        <div class="header-inner">
+            <div class="header-title">
+                <a href="/">База исполнителей</a>
+            </div>
+
+            <nav class="header-nav">
+                <a href="/">Главная</a>
+                <a href="/search/">Поиск</a>
+                <a href="/admin/">Админка</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="page">
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>
