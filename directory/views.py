@@ -18,6 +18,8 @@ from .models import (
 
 )
 
+from .forms import ExecutorForm
+
 @login_required
 def home(request):
     context = {
@@ -750,3 +752,20 @@ def add_executor_comment(request, executor_id):
         )
 
     return redirect("executor_detail", executor_id=executor.id)
+
+@login_required
+def executor_create(request):
+    if request.method == "POST":
+        form = ExecutorForm(request.POST)
+
+        if form.is_valid():
+            executor = form.save()
+            return redirect("executor_detail", executor_id=executor.id)
+    else:
+        form = ExecutorForm()
+
+    context = {
+        "form": form,
+    }
+
+    return render(request, "directory/executor_form.html", context)

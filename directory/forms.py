@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import Executor, ProjectSelection, SelectionStatus, Specialty
+from .models import EmploymentType, Executor, ExecutorStatus, ProjectSelection, SelectionStatus, Specialty
 
 
 class ProjectSelectionForm(forms.ModelForm):
@@ -43,3 +43,45 @@ class ProjectSelectionForm(forms.ModelForm):
                 "rows": 3,
             }
         )
+
+from .models import EmploymentType, ExecutorStatus
+
+
+class ExecutorForm(forms.ModelForm):
+    class Meta:
+        model = Executor
+        fields = (
+            "last_name",
+            "first_name",
+            "middle_name",
+            "phone",
+            "email",
+            "messenger",
+            "employment_type",
+            "status",
+            "works_in_revit",
+            "revit_comment",
+            "general_comment",
+        )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.fields["employment_type"].queryset = EmploymentType.objects.filter(
+            is_active=True
+        ).order_by("name")
+
+        self.fields["status"].queryset = ExecutorStatus.objects.filter(
+            is_active=True
+        ).order_by("name")
+
+        self.fields["middle_name"].required = False
+        self.fields["phone"].required = False
+        self.fields["email"].required = False
+        self.fields["messenger"].required = False
+        self.fields["employment_type"].required = False
+        self.fields["revit_comment"].required = False
+        self.fields["general_comment"].required = False
+
+        self.fields["revit_comment"].widget = forms.Textarea(attrs={"rows": 3})
+        self.fields["general_comment"].widget = forms.Textarea(attrs={"rows": 4})

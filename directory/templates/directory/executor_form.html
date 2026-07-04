@@ -1,0 +1,109 @@
+{% extends "directory/base.html" %}
+
+{% block title %}Новый исполнитель{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>Новый исполнитель</h1>
+
+    <p class="muted">
+        Создание карточки исполнителя. Специальности добавляются следующим шагом после создания карточки.
+    </p>
+
+    <p>
+        <a class="button" href="/executors/">← К списку исполнителей</a>
+    </p>
+</div>
+
+<div class="card">
+    <form method="post" class="executor-form">
+        {% csrf_token %}
+
+        {% if form.errors %}
+            <div class="form-errors">
+                Проверьте заполнение полей.
+            </div>
+        {% endif %}
+
+        <h2>ФИО</h2>
+        <div class="executor-form-grid executor-form-grid-3">
+            <div>
+                {{ form.last_name.label_tag }}
+                {{ form.last_name }}
+                {{ form.last_name.errors }}
+            </div>
+
+            <div>
+                {{ form.first_name.label_tag }}
+                {{ form.first_name }}
+                {{ form.first_name.errors }}
+            </div>
+
+            <div>
+                {{ form.middle_name.label_tag }}
+                {{ form.middle_name }}
+                {{ form.middle_name.errors }}
+            </div>
+        </div>
+
+        <h2>Контакты</h2>
+        <div class="executor-form-grid executor-form-grid-3">
+            <div>
+                {{ form.phone.label_tag }}
+                {{ form.phone }}
+                {{ form.phone.errors }}
+            </div>
+
+            <div>
+                {{ form.email.label_tag }}
+                {{ form.email }}
+                {{ form.email.errors }}
+            </div>
+
+            <div>
+                {{ form.messenger.label_tag }}
+                {{ form.messenger }}
+                {{ form.messenger.errors }}
+            </div>
+        </div>
+
+        <h2>Статус</h2>
+        <div class="executor-form-grid executor-form-grid-2">
+            <div>
+                {{ form.status.label_tag }}
+                {{ form.status }}
+                {{ form.status.errors }}
+            </div>
+
+            <div>
+                {{ form.employment_type.label_tag }}
+                {{ form.employment_type }}
+                {{ form.employment_type.errors }}
+            </div>
+        </div>
+
+        <h2>Revit</h2>
+        <div class="executor-form-grid executor-form-grid-2">
+            <div class="checkbox-field">
+                {{ form.works_in_revit }}
+                {{ form.works_in_revit.label_tag }}
+                {{ form.works_in_revit.errors }}
+            </div>
+
+            <div>
+                {{ form.revit_comment.label_tag }}
+                {{ form.revit_comment }}
+                {{ form.revit_comment.errors }}
+            </div>
+        </div>
+
+        <h2>Общий комментарий</h2>
+        <div class="executor-form-wide">
+            {{ form.general_comment }}
+            {{ form.general_comment.errors }}
+        </div>
+
+        <button type="submit">Создать исполнителя</button>
+    </form>
+</div>
+{% endblock %}
