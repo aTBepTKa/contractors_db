@@ -8,6 +8,7 @@ from django.utils.dateparse import parse_date
 from .models import (
     Executor,
     ExecutorComment,
+    ExecutorSpecialty,
     ExecutorStatus,
     ObjectType,
     Project,
@@ -371,6 +372,17 @@ def executor_detail(request, executor_id):
         for item in executor.executor_specialties.all()
     ]
 
+    used_specialty_ids = [
+        item.specialty_id
+        for item in executor.executor_specialties.all()
+    ]
+
+    available_specialties = Specialty.objects.filter(
+        is_active=True
+    ).exclude(
+        id__in=used_specialty_ids
+    ).order_by("code")
+
     comments = executor.comments.all().order_by("-created_at")
 
     selections = sorted(
@@ -398,6 +410,8 @@ def executor_detail(request, executor_id):
         "comments": comments,
         "selection_items": selection_items,
         "projects": Project.objects.order_by("name"),
+        "executor_specialties": executor.executor_specialties.all(),
+        "available_specialties": available_specialties,
     }
 
     return render(request, "directory/executor_detail.html", context)
@@ -760,6 +774,15 @@ def executor_create(request):
 
         if form.is_valid():
             executor = form.save()
+
+            specialties = form.cleaned_data.get("specialties")
+
+            for specialty in specialties:
+                ExecutorSpecialty.objects.get_or_create(
+                    executor=executor,
+                    specialty=specialty,
+                )
+
             return redirect("executor_detail", executor_id=executor.id)
     else:
         form = ExecutorForm()
@@ -769,3 +792,36 @@ def executor_create(request):
     }
 
     return render(request, "directory/executor_form.html", context)
+
+@login_required
+def add_executor_specialty(request, executor_id):
+    executor = get_object_or_404(Executor, id=executor_id)
+
+    if request.method != "POST":
+        return redirect("executor_detail", executor_id=executor.id)
+
+    specialty_id = request.POST.get("specialty")
+    specialty = Specialty.objects.filter(id=specialty_id, is_active=True).first()
+
+    if specialty:
+        ExecutorSpecialty.objects.get_or_create(
+            executor=executor,
+            specialty=specialty,
+        )
+
+    return redirect("executor_detail", executor_id=executor.id)
+
+
+@login_required
+def delete_executor_specialty(request, executor_specialty_id):
+    executor_specialty = get_object_or_404(
+        ExecutorSpecialty.objects.select_related("executor"),
+        id=executor_specialty_id,
+    )
+
+    executor_id = executor_specialty.executor.id
+
+    if request.method == "POST":
+        executor_specialty.delete()
+
+    return redirect("executor_detail", executor_id=executor_id)

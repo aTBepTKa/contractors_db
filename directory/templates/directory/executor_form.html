@@ -82,6 +82,16 @@
             </div>
         </div>
 
+        <h2>Специальности</h2>
+        <div class="executor-form-wide">
+            {{ form.specialties.label_tag }}
+            {{ form.specialties }}
+            {{ form.specialties.errors }}
+            <p class="small muted">
+                Можно выбрать несколько специальностей. Для выбора нескольких строк удерживайте Ctrl.
+            </p>
+        </div>
+
         <h2>Revit</h2>
         <div class="executor-form-grid executor-form-grid-2">
             <div class="checkbox-field">

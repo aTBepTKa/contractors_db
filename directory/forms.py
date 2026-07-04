@@ -48,6 +48,13 @@ from .models import EmploymentType, ExecutorStatus
 
 
 class ExecutorForm(forms.ModelForm):
+    specialties = forms.ModelMultipleChoiceField(
+        label="Специальности",
+        queryset=Specialty.objects.none(),
+        required=False,
+        widget=forms.SelectMultiple(attrs={"size": 8}),
+    )
+
     class Meta:
         model = Executor
         fields = (
@@ -62,6 +69,7 @@ class ExecutorForm(forms.ModelForm):
             "works_in_revit",
             "revit_comment",
             "general_comment",
+            "specialties",
         )
 
     def __init__(self, *args, **kwargs):
@@ -74,6 +82,10 @@ class ExecutorForm(forms.ModelForm):
         self.fields["status"].queryset = ExecutorStatus.objects.filter(
             is_active=True
         ).order_by("name")
+
+        self.fields["specialties"].queryset = Specialty.objects.filter(
+            is_active=True
+        ).order_by("code")
 
         self.fields["middle_name"].required = False
         self.fields["phone"].required = False
