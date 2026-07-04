@@ -1,0 +1,158 @@
+/* Общая ширина формы изменения объекта */
+.change-form .form-row {
+    max-width: 1200px;
+}
+
+/* Поля ФИО */
+.field-last_name input,
+.field-first_name input,
+.field-middle_name input {
+    width: 220px;
+}
+
+/* Контакты */
+.field-phone input {
+    width: 200px;
+}
+
+.field-email input {
+    width: 280px;
+}
+
+.field-messenger input {
+    width: 260px;
+}
+
+/* Выпадающие списки */
+.field-status select,
+.field-employment_type select {
+    min-width: 220px;
+}
+
+/* Комментарии */
+.field-revit_comment textarea,
+.field-status_comment textarea,
+.field-general_comment textarea,
+.field-comment textarea {
+    width: 900px;
+    min-height: 90px;
+}
+
+/* Табличные встроенные блоки */
+.inline-group .tabular table {
+    width: 100%;
+}
+
+.inline-group .tabular td,
+.inline-group .tabular th {
+    vertical-align: top;
+}
+
+/* Ширина колонок во встроенных таблицах */
+.dynamic-executor_specialties select {
+    min-width: 260px;
+}
+
+.dynamic-comments textarea {
+    width: 520px;
+    min-height: 70px;
+}
+
+.dynamic-project_selections textarea {
+    width: 420px;
+    min-height: 60px;
+}
+
+/* Чуть плотнее служебные подсказки */
+.help {
+    font-size: 12px;
+    color: #6b7280;
+}
+
+/* Принудительное размещение сгруппированных полей в одну строку */
+.form-row.field-last_name.field-first_name.field-middle_name > div,
+.form-row.field-phone.field-email.field-messenger > div,
+.form-row.field-status.field-employment_type > div {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: flex-start;
+    gap: 20px;
+}
+
+/* Настройка внутренних блоков полей */
+.form-row.field-last_name.field-first_name.field-middle_name .fieldBox,
+.form-row.field-phone.field-email.field-messenger .fieldBox,
+.form-row.field-status.field-employment_type .fieldBox {
+    float: none;
+    margin-right: 0;
+    min-width: 0;
+}
+
+/* Уменьшаем ширину полей ФИО, чтобы точно поместились в одну строку */
+.field-last_name input,
+.field-first_name input,
+.field-middle_name input {
+    width: 180px;
+}
+
+/* Контакты */
+.field-phone input {
+    width: 180px;
+}
+
+.field-email input {
+    width: 240px;
+}
+
+.field-messenger input {
+    width: 240px;
+}
+
+/* Статус и тип занятости */
+.field-status select,
+.field-employment_type select {
+    width: 220px;
+}
+
+/* Убираем лишний перенос в сгруппированных строках */
+.form-row.field-last_name.field-first_name.field-middle_name,
+.form-row.field-phone.field-email.field-messenger,
+.form-row.field-status.field-employment_type {
+    max-width: none;
+}
+
+/* Уменьшаем ширину подписей полей в форме */
+.change-form .form-row label {
+    width: 110px;
+}
+
+/* Для сгруппированных строк делаем подписи компактнее */
+.form-row.field-last_name.field-first_name.field-middle_name label,
+.form-row.field-phone.field-email.field-messenger label,
+.form-row.field-status.field-employment_type label {
+    width: 85px;
+    margin-right: 8px;
+}
+
+/* Для длинных подписей текстовых полей можно оставить чуть шире */
+.form-row.field-status_comment label,
+.form-row.field-revit_comment label,
+.form-row.field-general_comment label {
+    width: 150px;
+}
+
+/* Подтягиваем поля ближе к подписям */
+.aligned label + p,
+.aligned label + div.help,
+.aligned label + input,
+.aligned label + select,
+.aligned label + textarea {
+    margin-left: 0;
+}
+
+/* Уменьшаем горизонтальные разрывы между полями */
+.form-row.field-last_name.field-first_name.field-middle_name > div,
+.form-row.field-phone.field-email.field-messenger > div,
+.form-row.field-status.field-employment_type > div {
+    gap: 14px;
+}

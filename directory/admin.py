@@ -151,16 +151,27 @@ class ExecutorAdmin(admin.ModelAdmin):
 
     fieldsets = (
         (
-            "ФИО и контакты",
+            "ФИО",
             {
                 "fields": (
-                    "last_name",
-                    "first_name",
-                    "middle_name",
-                    "phone",
-                    "email",
-                    "messenger",
-                    "employment_type",
+                    ("last_name", "first_name", "middle_name"),
+                )
+            },
+        ),
+        (
+            "Контакты",
+            {
+                "fields": (
+                    ("phone", "email", "messenger"),
+                )
+            },
+        ),
+        (
+            "Статус",
+            {
+                "fields": (
+                    ("status", "employment_type"),
+                    "status_comment",
                 )
             },
         ),
@@ -174,11 +185,9 @@ class ExecutorAdmin(admin.ModelAdmin):
             },
         ),
         (
-            "Статус и комментарии",
+            "Общие комментарии",
             {
                 "fields": (
-                    "status",
-                    "status_comment",
                     "general_comment",
                 )
             },
@@ -186,6 +195,7 @@ class ExecutorAdmin(admin.ModelAdmin):
         (
             "Служебные поля",
             {
+                "classes": ("collapse",),
                 "fields": (
                     "created_at",
                     "updated_at",
@@ -193,6 +203,11 @@ class ExecutorAdmin(admin.ModelAdmin):
             },
         ),
     )
+
+    class Media:
+        css = {
+            "all": ("directory/css/admin.css",)
+        }    
 
     @admin.display(description="ФИО", ordering="last_name")
     def full_name(self, obj):
