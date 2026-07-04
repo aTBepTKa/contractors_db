@@ -274,52 +274,99 @@
                             {% endif %}
                         </td>
 
-                        <form method="post" action="/selections/{{ item.selection.id }}/update/">
+                        <form
+                            id="selection-update-{{ item.selection.id }}"
+                            method="post"
+                            action="/selections/{{ item.selection.id }}/update/"
+                        >
                             {% csrf_token %}
-
-                            <td class="col-status">
-                                <select name="status" class="compact-select">
-                                    {% for status in selection_statuses %}
-                                        <option value="{{ status.id }}"
-                                            {% if item.selection.status_id == status.id %}selected{% endif %}>
-                                            {{ status.name }}
-                                        </option>
-                                    {% endfor %}
-                                </select>
-                            </td>
-
-                            <td class="col-amount">
-                                <input
-                                    type="text"
-                                    name="offer_amount"
-                                    value="{{ item.selection.offer_amount|default:'' }}"
-                                    placeholder="200000"
-                                    class="compact-input amount-input"
-                                >
-                            </td>
-
-                            <td class="col-comment">
-                                <textarea name="comment" rows="2" class="compact-textarea">{{ item.selection.comment }}</textarea>
-                            </td>
-
-                            <td class="col-negotiations">
-                                {% if item.negotiations %}
-                                    {% for negotiation in item.negotiations %}
-                                        <div class="timeline-item compact-timeline">
-                                            <strong>{{ negotiation.event_date|date:"d.m.Y" }}</strong><br>
-                                            {{ negotiation.comment }}<br>
-                                            <span class="small muted">{{ negotiation.user }}</span>
-                                        </div>
-                                    {% endfor %}
-                                {% else %}
-                                    —
-                                {% endif %}
-                            </td>
-
-                            <td class="col-save">
-                                <button type="submit" class="compact-button">OK</button>
-                            </td>
                         </form>
+
+                        <form
+                            id="negotiation-add-{{ item.selection.id }}"
+                            method="post"
+                            action="/selections/{{ item.selection.id }}/negotiations/add/"
+                        >
+                            {% csrf_token %}
+                        </form>
+
+                        <td class="col-status">                            
+                            <select name="status" class="compact-select" form="selection-update-{{ item.selection.id }}">
+                                {% for status in selection_statuses %}
+                                    <option value="{{ status.id }}"
+                                        {% if item.selection.status_id == status.id %}selected{% endif %}>
+                                        {{ status.name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </td>
+
+                        <td class="col-amount">
+                            <input
+                                type="text"
+                                name="offer_amount"
+                                value="{{ item.selection.offer_amount|default:'' }}"
+                                placeholder="200000"
+                                class="compact-input amount-input"
+                                form="selection-update-{{ item.selection.id }}"
+                            >
+                        </td>
+
+                        <td class="col-comment">
+                            <textarea
+                                name="comment"
+                                rows="2"
+                                class="compact-textarea"
+                                form="selection-update-{{ item.selection.id }}"
+                            >{{ item.selection.comment }}</textarea>
+                        </td>
+
+                        <td class="col-negotiations">
+                            {% if item.negotiations %}
+                                {% for negotiation in item.negotiations %}
+                                    <div class="timeline-item compact-timeline">
+                                        <strong>{{ negotiation.event_date|date:"d.m.Y" }}</strong><br>
+                                        {{ negotiation.comment }}<br>
+                                        <span class="small muted">{{ negotiation.user }}</span>
+                                    </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="muted">—</div>
+                            {% endif %}
+
+                            <div class="negotiation-add">                                
+                                <input
+                                    type="date"
+                                    name="event_date"
+                                    class="compact-input"
+                                    form="negotiation-add-{{ item.selection.id }}"
+                                >
+                                <textarea
+                                    name="comment"
+                                    rows="2"
+                                    class="compact-textarea"
+                                    placeholder="Новая запись переговоров"
+                                    form="negotiation-add-{{ item.selection.id }}"
+                                ></textarea>
+                                <button
+                                    type="submit"
+                                    class="compact-button secondary-button"
+                                    form="negotiation-add-{{ item.selection.id }}"
+                                >
+                                    +
+                                </button>
+                            </div>
+                        </td>
+
+                        <td class="col-save">
+                            <button
+                                type="submit"
+                                class="compact-button"
+                                form="selection-update-{{ item.selection.id }}"
+                            >
+                                OK
+                            </button>
+                        </td>
                     </tr>
                 {% endfor %}
                 </tbody>

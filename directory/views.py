@@ -2,7 +2,10 @@ from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError, models
 from django.shortcuts import get_object_or_404, redirect, render
 
-from .models import Executor, ObjectType, Project, ProjectSelection, SelectionStatus, Specialty
+from django.utils import timezone
+from django.utils.dateparse import parse_date
+
+from .models import Executor, ObjectType, Project, ProjectSelection, SelectionNegotiation, SelectionStatus, Specialty
 
 @login_required
 def home(request):
@@ -527,5 +530,33 @@ def update_project_selection(request, selection_id):
 
     selection.comment = comment
     selection.save()
+
+    return redirect("project_detail", project_id=selection.project.id)
+
+@login_required
+def add_selection_negotiation(request, selection_id):
+    selection = get_object_or_404(
+        ProjectSelection.objects.select_related("project"),
+        id=selection_id,
+    )
+
+    if request.method != "POST":
+        return redirect("project_detail", project_id=selection.project.id)
+
+    event_date_raw = request.POST.get("event_date", "").strip()
+    comment = request.POST.get("comment", "").strip()
+
+    event_date = parse_date(event_date_raw) if event_date_raw else timezone.localdate()
+
+    if not event_date:
+        event_date = timezone.localdate()
+
+    if comment:
+        SelectionNegotiation.objects.create(
+            selection=selection,
+            event_date=event_date,
+            comment=comment,
+            user=request.user,
+        )
 
     return redirect("project_detail", project_id=selection.project.id)
