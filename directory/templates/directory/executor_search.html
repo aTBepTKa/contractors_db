@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Поиск исполнителей</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 24px;
+            background: #f7f7f7;
+        }
+
+        h1 {
+            margin-bottom: 16px;
+        }
+
+        .panel {
+            background: white;
+            padding: 16px;
+            border: 1px solid #ddd;
+            margin-bottom: 20px;
+        }
+
+        label {
+            margin-right: 8px;
+        }
+
+        select, button {
+            padding: 6px 8px;
+            margin-right: 12px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            vertical-align: top;
+            font-size: 14px;
+        }
+
+        th {
+            background: #efefef;
+            text-align: left;
+        }
+
+        .inactive {
+            background: #fff1f1;
+        }
+
+        .muted {
+            color: #777;
+        }
+
+        .small {
+            font-size: 12px;
+        }
+
+        .admin-link {
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Поиск исполнителей по специальности</h1>
+
+    <div class="admin-link">
+        <a href="/admin/">← Админка</a>
+    </div>
+
+    <div class="panel">
+        <form method="get">
+            <label for="specialty">Специальность:</label>
+            <select name="specialty" id="specialty" required>
+                <option value="">Выберите специальность</option>
+                {% for specialty in specialties %}
+                    <option value="{{ specialty.id }}"
+                        {% if selected_specialty_id == specialty.id|stringformat:"s" %}selected{% endif %}>
+                        {{ specialty.code }} — {{ specialty.name }}
+                    </option>
+                {% endfor %}
+            </select>
+
+            <label>
+                <input type="checkbox" name="show_all" value="1" {% if show_all %}checked{% endif %}>
+                Показать всех
+            </label>
+
+            <button type="submit">Найти</button>
+        </form>
+    </div>
+
+    {% if selected_specialty %}
+        <h2>Результаты: {{ selected_specialty.code }} — {{ selected_specialty.name }}</h2>
+
+        {% if executors %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>ФИО</th>
+                        <th>Телефон</th>
+                        <th>Почта</th>
+                        <th>Мессенджер</th>
+                        <th>Специальности</th>
+                        <th>Revit</th>
+                        <th>Статус</th>
+                        <th>Последние КП</th>
+                        <th>Последние проекты</th>
+                        <th>Последний комментарий</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in executors %}
+                        <tr class="{% if item.executor.status.name != 'Активный' %}inactive{% endif %}">
+                            <td>
+                                <strong>{{ item.executor }}</strong><br>
+                                <a class="small" href="/admin/directory/executor/{{ item.executor.id }}/change/">
+                                    Открыть карточку
+                                </a>
+                            </td>
+                            <td>{{ item.executor.phone|default:"—" }}</td>
+                            <td>{{ item.executor.email|default:"—" }}</td>
+                            <td>{{ item.executor.messenger|default:"—" }}</td>
+                            <td>{{ item.specialties|default:"—" }}</td>
+                            <td>
+                                {% if item.executor.works_in_revit %}
+                                    Да
+                                {% else %}
+                                    Нет
+                                {% endif %}
+                                {% if item.executor.revit_comment %}
+                                    <br><span class="small muted">{{ item.executor.revit_comment }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {{ item.executor.status }}
+                                {% if item.executor.status_comment %}
+                                    <br><span class="small muted">{{ item.executor.status_comment }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if item.offers %}
+                                    {% for offer in item.offers %}
+                                        {{ offer.amount }}<br>
+                                    {% endfor %}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if item.projects %}
+                                    {% for project in item.projects %}
+                                        {{ project }}<br>
+                                    {% endfor %}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if item.last_comment %}
+                                    {{ item.last_comment.comment }}<br>
+                                    <span class="small muted">
+                                        {{ item.last_comment.created_at|date:"d.m.Y H:i" }}
+                                    </span>
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>Исполнители по выбранной специальности не найдены.</p>
+        {% endif %}
+    {% endif %}
+</body>
+</html>

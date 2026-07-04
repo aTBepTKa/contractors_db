@@ -1,0 +1,28 @@
+services:
+  db:
+    image: postgres:16
+    container_name: contractors_db_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: contractors
+      POSTGRES_USER: contractors_user
+      POSTGRES_PASSWORD: contractors_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  web:
+    build: .
+    container_name: contractors_db_web
+    restart: unless-stopped
+    command: sleep infinity
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:
