@@ -25,3 +25,5 @@ Thumbs.db
 
 # Docker / local
 postgres_data/
+
+backups/
