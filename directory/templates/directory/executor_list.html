@@ -36,34 +36,74 @@
 
 <div class="form-panel">
     <form method="get">
-        <label for="q">Поиск:</label>
-        <input
-            type="text"
-            id="q"
-            name="q"
-            value="{{ search_query }}"
-            placeholder="ФИО, телефон, почта, комментарий"
-            style="width: 280px;"
-        >
+        <div class="executor-filter-grid">
+            <div>
+                <label for="q">Поиск</label>
+                <input
+                    type="text"
+                    id="q"
+                    name="q"
+                    value="{{ search_query }}"
+                    placeholder="ФИО, телефон, почта, комментарий"
+                >
+            </div>
 
-        <label for="specialty">Специальность:</label>
-        <select name="specialty" id="specialty">
-            <option value="">Все специальности</option>
-            {% for specialty in specialties %}
-                <option value="{{ specialty.id }}"
-                    {% if selected_specialty_id == specialty.id|stringformat:"s" %}selected{% endif %}>
-                    {{ specialty.code }} — {{ specialty.name }}
-                </option>
-            {% endfor %}
-        </select>
+            <div>
+                <label for="specialty">Специальность</label>
+                <select name="specialty" id="specialty">
+                    <option value="">Все специальности</option>
+                    {% for specialty in specialties %}
+                        <option value="{{ specialty.id }}"
+                            {% if selected_specialty_id == specialty.id|stringformat:"s" %}selected{% endif %}>
+                            {{ specialty.code }} — {{ specialty.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
 
-        <label>
-            <input type="checkbox" name="show_all" value="1" {% if show_all %}checked{% endif %}>
-            Показать всех
-        </label>
+            <div>
+                <label for="status">Статус</label>
+                <select name="status" id="status">
+                    <option value="">Все статусы</option>
+                    {% for status in executor_statuses %}
+                        <option value="{{ status.id }}"
+                            {% if selected_status_id == status.id|stringformat:"s" %}selected{% endif %}>
+                            {{ status.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
 
-        <button type="submit">Применить</button>
-        <a class="button" href="/executors/">Сбросить</a>
+            <div>
+                <label for="revit">Revit</label>
+                <select name="revit" id="revit">
+                    <option value="">Все</option>
+                    <option value="yes" {% if revit_filter == "yes" %}selected{% endif %}>Да</option>
+                    <option value="no" {% if revit_filter == "no" %}selected{% endif %}>Нет</option>
+                </select>
+            </div>
+
+            <div>
+                <label for="sort">Сортировка</label>
+                <select name="sort" id="sort">
+                    <option value="name" {% if sort == "name" %}selected{% endif %}>По ФИО</option>
+                    <option value="status" {% if sort == "status" %}selected{% endif %}>По статусу</option>
+                    <option value="revit" {% if sort == "revit" %}selected{% endif %}>По Revit</option>
+                </select>
+            </div>
+
+            <div class="executor-filter-checkbox">
+                <label>
+                    <input type="checkbox" name="show_all" value="1" {% if show_all %}checked{% endif %}>
+                    Показать всех
+                </label>
+            </div>
+
+            <div class="executor-filter-buttons">
+                <button type="submit">Применить</button>
+                <a class="button" href="/executors/">Сбросить</a>
+            </div>
+        </div>
     </form>
 </div>
 

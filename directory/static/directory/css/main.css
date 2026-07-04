@@ -562,3 +562,60 @@ button:hover,
         width: auto;
     }
 }
+
+.executor-filter-grid {
+    display: grid;
+    grid-template-columns: 1.3fr 1.4fr 1fr 0.8fr 1fr 0.9fr 220px;
+    gap: 12px;
+    align-items: end;
+}
+
+.executor-filter-grid label {
+    display: block;
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+
+.executor-filter-grid input[type="text"],
+.executor-filter-grid select {
+    width: 100%;
+}
+
+.executor-filter-checkbox {
+    display: flex;
+    align-items: end;
+    padding-bottom: 8px;
+}
+
+.executor-filter-checkbox label {
+    font-weight: 400;
+    margin-bottom: 0;
+}
+
+.executor-filter-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.executor-filter-buttons button,
+.executor-filter-buttons .button {
+    width: 50%;
+    text-align: center;
+}
+
+@media (max-width: 1200px) {
+    .executor-filter-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .executor-filter-buttons button,
+    .executor-filter-buttons .button {
+        width: auto;
+    }
+}
+
+@media (max-width: 700px) {
+    .executor-filter-grid {
+        grid-template-columns: 1fr;
+    }
+}
