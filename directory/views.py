@@ -328,3 +328,54 @@ def project_list(request):
     }
 
     return render(request, "directory/project_list.html", context)
+
+@login_required
+def project_detail(request, project_id):
+    project = get_object_or_404(
+        Project.objects
+        .select_related("object_type")
+        .prefetch_related(
+            "selections__specialty",
+            "selections__executor",
+            "selections__executor__status",
+            "selections__status",
+            "selections__negotiations",
+            "selections__negotiations__user",
+        ),
+        id=project_id,
+    )
+
+    selections = project.selections.all().order_by(
+        "specialty__code",
+        "executor__last_name",
+        "executor__first_name",
+    )
+
+    selection_items = []
+    total_offer_amount = 0
+
+    for selection in selections:
+        if selection.offer_amount:
+            total_offer_amount += selection.offer_amount
+
+        negotiations = selection.negotiations.all().order_by(
+            "-event_date",
+            "-created_at",
+        )
+
+        selection_items.append(
+            {
+                "selection": selection,
+                "offer_amount": format_money(selection.offer_amount),
+                "negotiations": negotiations,
+            }
+        )
+
+    context = {
+        "project": project,
+        "selection_items": selection_items,
+        "selections_count": len(selection_items),
+        "total_offer_amount": format_money(total_offer_amount),
+    }
+
+    return render(request, "directory/project_detail.html", context)

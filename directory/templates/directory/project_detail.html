@@ -1,0 +1,143 @@
+{% extends "directory/base.html" %}
+
+{% block title %}{{ project.name }} — Проект{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>{{ project.name }}</h1>
+
+    <p class="muted">
+        Карточка проекта: основные данные, подбор исполнителей, суммы КП и переговоры.
+    </p>
+
+    <p>
+        <a class="button" href="/projects/">← К списку проектов</a>
+        <a class="button" href="/admin/directory/project/{{ project.id }}/change/">Открыть в админке</a>
+    </p>
+</div>
+
+<div class="grid">
+    <div class="card">
+        <h2>Основные данные</h2>
+
+        <p><strong>Тип объекта:</strong> {{ project.object_type }}</p>
+        <p><strong>Площадь:</strong> {{ project.area|default:"—" }} м²</p>
+        <p><strong>Дата создания:</strong> {{ project.created_at|date:"d.m.Y H:i" }}</p>
+        <p><strong>Дата изменения:</strong> {{ project.updated_at|date:"d.m.Y H:i" }}</p>
+    </div>
+
+    <div class="card">
+        <h2>Подбор</h2>
+
+        <p><strong>Строк подбора:</strong> {{ selections_count }}</p>
+        <p><strong>Сумма КП:</strong> {{ total_offer_amount }} руб.</p>
+    </div>
+
+    <div class="card">
+        <h2>Комментарий</h2>
+
+        {% if project.comment %}
+            <p>{{ project.comment }}</p>
+        {% else %}
+            <p class="muted">Комментарий по проекту не заполнен.</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card">
+    <h2>Подбор исполнителей</h2>
+
+    {% if selection_items %}
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Специальность</th>
+                        <th>Исполнитель</th>
+                        <th>Контакты</th>
+                        <th>Revit</th>
+                        <th>Статус подбора</th>
+                        <th>Сумма КП</th>
+                        <th>Комментарий</th>
+                        <th>Переговоры</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in selection_items %}
+                        <tr class="{% if item.selection.executor.status.name != 'Активный' %}inactive{% endif %}">
+                            <td>
+                                <strong>{{ item.selection.specialty.code }}</strong><br>
+                                <span class="small muted">{{ item.selection.specialty.name }}</span>
+                            </td>
+
+                            <td>
+                                <strong>{{ item.selection.executor }}</strong><br>
+                                <a class="small" href="/executors/{{ item.selection.executor.id }}/">
+                                    Карточка исполнителя
+                                </a>
+                                <br>
+                                <a class="small" href="/admin/directory/projectselection/{{ item.selection.id }}/change/">
+                                    Строка подбора в админке
+                                </a>
+                            </td>
+
+                            <td>
+                                {% if item.selection.executor.phone %}
+                                    {{ item.selection.executor.phone }}<br>
+                                {% endif %}
+
+                                {% if item.selection.executor.email %}
+                                    {{ item.selection.executor.email }}<br>
+                                {% endif %}
+
+                                {% if item.selection.executor.messenger %}
+                                    {{ item.selection.executor.messenger }}
+                                {% endif %}
+
+                                {% if not item.selection.executor.phone and not item.selection.executor.email and not item.selection.executor.messenger %}
+                                    —
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                {% if item.selection.executor.works_in_revit %}
+                                    Да
+                                {% else %}
+                                    Нет
+                                {% endif %}
+
+                                {% if item.selection.executor.revit_comment %}
+                                    <br>
+                                    <span class="small muted">
+                                        {{ item.selection.executor.revit_comment }}
+                                    </span>
+                                {% endif %}
+                            </td>
+
+                            <td>{{ item.selection.status }}</td>
+                            <td>{{ item.offer_amount|default:"—" }}</td>
+                            <td>{{ item.selection.comment|default:"—" }}</td>
+
+                            <td>
+                                {% if item.negotiations %}
+                                    {% for negotiation in item.negotiations %}
+                                        <div class="timeline-item">
+                                            <strong>{{ negotiation.event_date|date:"d.m.Y" }}</strong><br>
+                                            {{ negotiation.comment }}<br>
+                                            <span class="small muted">{{ negotiation.user }}</span>
+                                        </div>
+                                    {% endfor %}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p>По проекту пока нет строк подбора.</p>
+    {% endif %}
+</div>
+{% endblock %}
