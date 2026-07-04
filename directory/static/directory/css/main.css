@@ -514,3 +514,51 @@ button:hover,
 .danger-button:hover {
     background: #b91c1c;
 }
+
+.selection-filter-form {
+    margin-bottom: 16px;
+    padding: 12px;
+    background: #f8fafc;
+    border: 1px solid #d9dee5;
+    border-radius: 6px;
+}
+
+.selection-filter-row {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr 240px;
+    gap: 14px;
+    align-items: end;
+}
+
+.selection-filter-row label {
+    display: block;
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+
+.selection-filter-row select {
+    width: 100%;
+}
+
+.selection-filter-buttons {
+    display: flex;
+    gap: 8px;
+    align-items: end;
+}
+
+.selection-filter-buttons button,
+.selection-filter-buttons .button {
+    width: 50%;
+    text-align: center;
+}
+
+@media (max-width: 900px) {
+    .selection-filter-row {
+        grid-template-columns: 1fr;
+    }
+
+    .selection-filter-buttons button,
+    .selection-filter-buttons .button {
+        width: auto;
+    }
+}

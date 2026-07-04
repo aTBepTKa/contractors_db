@@ -355,6 +355,9 @@ def project_detail(request, project_id):
     selected_specialty = None
     candidate_items = []
 
+    selection_specialty_id = request.GET.get("selection_specialty")
+    selection_status_id = request.GET.get("selection_status")
+
     if request.method == "POST":
         action = request.POST.get("action")
 
@@ -461,8 +464,17 @@ def project_detail(request, project_id):
                     }
                 )
 
-    selections = project.selections.all().order_by(
+    selections = project.selections.all()
+
+    if selection_specialty_id:
+        selections = selections.filter(specialty_id=selection_specialty_id)
+
+    if selection_status_id:
+        selections = selections.filter(status_id=selection_status_id)
+
+    selections = selections.order_by(
         "specialty__code",
+        "offer_amount",
         "executor__last_name",
         "executor__first_name",
     )
@@ -498,6 +510,8 @@ def project_detail(request, project_id):
         "selected_specialty": selected_specialty,
         "candidate_items": candidate_items,
         "selection_statuses": SelectionStatus.objects.filter(is_active=True).order_by("name"),
+        "selection_specialty_id": selection_specialty_id,
+        "selection_status_id": selection_status_id,
     }
 
     return render(request, "directory/project_detail.html", context)
