@@ -10,6 +10,30 @@
     </p>
 </div>
 
+<div class="card">
+    <div class="stat-grid">
+        <div class="stat">
+            <div class="stat-value">{{ total_executors_count }}</div>
+            <div class="stat-label">Всего исполнителей</div>
+        </div>
+
+        <div class="stat">
+            <div class="stat-value">{{ active_executors_count }}</div>
+            <div class="stat-label">Активных</div>
+        </div>
+
+        <div class="stat">
+            <div class="stat-value">{{ inactive_executors_count }}</div>
+            <div class="stat-label">Неактивных / ограниченных</div>
+        </div>
+
+        <div class="stat">
+            <div class="stat-value">{{ revit_executors_count }}</div>
+            <div class="stat-label">Работают в Revit</div>
+        </div>
+    </div>
+</div>
+
 <div class="form-panel">
     <form method="get">
         <label for="q">Поиск:</label>
@@ -66,15 +90,15 @@
                     {% for item in items %}
                         <tr class="{% if item.executor.status.name != 'Активный' %}inactive{% endif %}">
                             <td>
-    <strong>{{ item.executor }}</strong><br>
-    <a class="small" href="/executors/{{ item.executor.id }}/">
-        Открыть карточку
-    </a>
-    <br>
-    <a class="small" href="/admin/directory/executor/{{ item.executor.id }}/change/">
-        Открыть в админке
-    </a>
-</td>
+                                <strong>{{ item.executor }}</strong><br>
+                                <a class="small" href="/executors/{{ item.executor.id }}/">
+                                    Открыть карточку
+                                </a>
+                                <br>
+                                <a class="small" href="/admin/directory/executor/{{ item.executor.id }}/change/">
+                                    Открыть в админке
+                                </a>
+                            </td>
 
                             <td>{{ item.specialties|default:"—" }}</td>
                             <td>{{ item.executor.phone|default:"—" }}</td>

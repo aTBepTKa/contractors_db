@@ -1,0 +1,103 @@
+{% extends "directory/base.html" %}
+
+{% block title %}Проекты{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>Проекты</h1>
+    <p class="muted">
+        Список проектов с количеством строк подбора, специальностями и суммами КП.
+    </p>
+</div>
+
+<div class="card">
+    <div class="stat-grid">
+        <div class="stat">
+            <div class="stat-value">{{ total_projects_count }}</div>
+            <div class="stat-label">Всего проектов</div>
+        </div>
+
+        <div class="stat">
+            <div class="stat-value">{{ total_selections_count }}</div>
+            <div class="stat-label">Строк подбора</div>
+        </div>
+    </div>
+</div>
+
+<div class="form-panel">
+    <form method="get">
+        <label for="q">Поиск:</label>
+        <input
+            type="text"
+            id="q"
+            name="q"
+            value="{{ search_query }}"
+            placeholder="Название проекта или комментарий"
+            style="width: 320px;"
+        >
+
+        <label for="object_type">Тип объекта:</label>
+        <select name="object_type" id="object_type">
+            <option value="">Все типы</option>
+            {% for object_type in object_types %}
+                <option value="{{ object_type.id }}"
+                    {% if selected_object_type_id == object_type.id|stringformat:"s" %}selected{% endif %}>
+                    {{ object_type.name }}
+                </option>
+            {% endfor %}
+        </select>
+
+        <button type="submit">Применить</button>
+        <a class="button" href="/projects/">Сбросить</a>
+    </form>
+</div>
+
+<div class="card">
+    <h2>Найдено: {{ items|length }}</h2>
+
+    {% if items %}
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Проект</th>
+                        <th>Тип объекта</th>
+                        <th>Площадь, м²</th>
+                        <th>Специальности</th>
+                        <th>Строк подбора</th>
+                        <th>Сумма КП, руб.</th>
+                        <th>Комментарий</th>
+                        <th>Дата изменения</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                        <tr>
+                            <td>
+                                <strong>{{ item.project.name }}</strong><br>
+                                <a class="small" href="/projects/{{ item.project.id }}/">
+                                    Открыть карточку
+                                </a>
+                                <br>
+                                <a class="small" href="/admin/directory/project/{{ item.project.id }}/change/">
+                                    Открыть в админке
+                                </a>
+                            </td>
+
+                            <td>{{ item.project.object_type }}</td>
+                            <td>{{ item.project.area|default:"—" }}</td>
+                            <td>{{ item.specialties|default:"—" }}</td>
+                            <td>{{ item.selections_count }}</td>
+                            <td>{{ item.total_offer_amount }}</td>
+                            <td>{{ item.project.comment|default:"—" }}</td>
+                            <td>{{ item.project.updated_at|date:"d.m.Y H:i" }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p>Проекты не найдены.</p>
+    {% endif %}
+</div>
+{% endblock %}

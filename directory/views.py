@@ -2,7 +2,7 @@ from django.contrib.auth.decorators import login_required
 from django.db import models
 from django.shortcuts import get_object_or_404, render
 
-from .models import Executor, Project, ProjectSelection, Specialty
+from .models import Executor, ObjectType, Project, ProjectSelection, Specialty
 
 @login_required
 def home(request):
@@ -200,6 +200,10 @@ def executor_list(request):
         "selected_specialty": selected_specialty,
         "show_all": show_all,
         "search_query": search_query,
+        "total_executors_count": Executor.objects.count(),
+        "active_executors_count": Executor.objects.filter(status__name="Активный").count(),
+        "inactive_executors_count": Executor.objects.exclude(status__name="Активный").count(),
+        "revit_executors_count": Executor.objects.filter(works_in_revit=True).count(),
     }
 
     return render(request, "directory/executor_list.html", context)
@@ -255,3 +259,72 @@ def executor_detail(request, executor_id):
     }
 
     return render(request, "directory/executor_detail.html", context)
+
+@login_required
+def project_list(request):
+    search_query = request.GET.get("q", "").strip()
+    object_type_id = request.GET.get("object_type")
+
+    projects = (
+        Project.objects
+        .select_related("object_type")
+        .prefetch_related(
+            "selections__specialty",
+            "selections__executor",
+            "selections__status",
+        )
+        .order_by("name")
+    )
+
+    selected_object_type = None
+
+    if object_type_id:
+        selected_object_type = ObjectType.objects.filter(id=object_type_id).first()
+
+        if selected_object_type:
+            projects = projects.filter(object_type=selected_object_type)
+
+    if search_query:
+        projects = projects.filter(
+            models.Q(name__icontains=search_query)
+            | models.Q(comment__icontains=search_query)
+        )
+
+    result_items = []
+
+    for project in projects:
+        selections = project.selections.all()
+
+        total_offer_amount = sum(
+            selection.offer_amount or 0
+            for selection in selections
+        )
+
+        specialties = []
+        seen_specialty_ids = set()
+
+        for selection in selections:
+            if selection.specialty_id not in seen_specialty_ids:
+                specialties.append(selection.specialty.code)
+                seen_specialty_ids.add(selection.specialty_id)
+
+        result_items.append(
+            {
+                "project": project,
+                "selections_count": len(selections),
+                "total_offer_amount": format_money(total_offer_amount),
+                "specialties": ", ".join(specialties),
+            }
+        )
+
+    context = {
+        "items": result_items,
+        "search_query": search_query,
+        "object_types": ObjectType.objects.filter(is_active=True).order_by("name"),
+        "selected_object_type_id": object_type_id,
+        "selected_object_type": selected_object_type,
+        "total_projects_count": Project.objects.count(),
+        "total_selections_count": ProjectSelection.objects.count(),
+    }
+
+    return render(request, "directory/project_list.html", context)
