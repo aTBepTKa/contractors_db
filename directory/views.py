@@ -1,8 +1,9 @@
 from django.contrib.auth.decorators import login_required
-from django.db import models
-from django.shortcuts import get_object_or_404, render
+from django.db import IntegrityError, models
+from django.shortcuts import get_object_or_404, redirect, render
 
-from .models import Executor, ObjectType, Project, ProjectSelection, Specialty
+from .forms import ProjectSelectionForm
+from .models import Executor, ObjectType, Project, ProjectSelection, SelectionStatus, Specialty
 
 @login_required
 def home(request):
@@ -345,6 +346,139 @@ def project_detail(request, project_id):
         id=project_id,
     )
 
+    form_error = None
+    add_candidate_error = None
+
+    selected_specialty_id = request.GET.get("specialty")
+    selected_specialty = None
+    candidate_items = []
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+
+        if action == "add_candidate":
+            specialty_id = request.POST.get("specialty_id")
+            executor_id = request.POST.get("executor_id")
+
+            specialty = Specialty.objects.filter(id=specialty_id).first()
+            executor = Executor.objects.filter(id=executor_id).first()
+            new_status = SelectionStatus.objects.filter(name="Новый").first()
+
+            if not new_status:
+                add_candidate_error = (
+                    "В справочнике статусов подбора нет статуса «Новый». "
+                    "Добавьте его через админку."
+                )
+            elif not specialty or not executor:
+                add_candidate_error = "Не выбрана специальность или исполнитель."
+            else:
+                try:
+                    ProjectSelection.objects.create(
+                        project=project,
+                        specialty=specialty,
+                        executor=executor,
+                        status=new_status,
+                    )
+                    return redirect("project_detail", project_id=project.id)
+                except IntegrityError:
+                    add_candidate_error = (
+                        "Этот исполнитель уже добавлен в проект по выбранной специальности."
+                    )
+
+            selected_specialty_id = specialty_id
+
+        else:
+            form = ProjectSelectionForm(request.POST)
+
+            if form.is_valid():
+                selection = form.save(commit=False)
+                selection.project = project
+
+                try:
+                    selection.save()
+                    return redirect("project_detail", project_id=project.id)
+                except IntegrityError:
+                    form_error = (
+                        "Такая строка подбора уже есть: "
+                        "проект + специальность + исполнитель должны быть уникальны."
+                    )
+    else:
+        form = ProjectSelectionForm()
+
+    if request.method == "POST" and request.POST.get("action") != "add_candidate":
+        pass
+    else:
+        form = ProjectSelectionForm()
+
+    if selected_specialty_id:
+        selected_specialty = Specialty.objects.filter(id=selected_specialty_id).first()
+
+        if selected_specialty:
+            used_executor_ids = ProjectSelection.objects.filter(
+                project=project,
+                specialty=selected_specialty,
+            ).values_list("executor_id", flat=True)
+
+            candidates = (
+                Executor.objects
+                .filter(
+                    executor_specialties__specialty=selected_specialty,
+                    status__name="Активный",
+                )
+                .exclude(id__in=used_executor_ids)
+                .select_related("status", "employment_type")
+                .prefetch_related(
+                    "executor_specialties__specialty",
+                    "project_selections__project",
+                    "project_selections__specialty",
+                    "project_selections__status",
+                    "comments",
+                )
+                .distinct()
+                .order_by("last_name", "first_name", "middle_name")
+            )
+
+            for candidate in candidates:
+                candidate_selections = [
+                    selection
+                    for selection in candidate.project_selections.all()
+                    if selection.specialty_id == selected_specialty.id
+                ]
+
+                candidate_selections = sorted(
+                    candidate_selections,
+                    key=lambda item: item.updated_at,
+                    reverse=True,
+                )
+
+                offers = [
+                    format_money(selection.offer_amount)
+                    for selection in candidate_selections
+                    if selection.offer_amount is not None
+                ][:5]
+
+                projects = []
+                seen_project_ids = set()
+
+                for selection in candidate_selections:
+                    if selection.project_id not in seen_project_ids:
+                        projects.append(selection.project.name)
+                        seen_project_ids.add(selection.project_id)
+
+                    if len(projects) >= 5:
+                        break
+
+                last_comment = candidate.comments.all().order_by("-created_at").first()
+
+                candidate_items.append(
+                    {
+                        "executor": candidate,
+                        "offers": offers,
+                        "projects": projects,
+                        "last_comment": last_comment,
+                    }
+                )
+
     selections = project.selections.all().order_by(
         "specialty__code",
         "executor__last_name",
@@ -376,6 +510,13 @@ def project_detail(request, project_id):
         "selection_items": selection_items,
         "selections_count": len(selection_items),
         "total_offer_amount": format_money(total_offer_amount),
+        "form": form,
+        "form_error": form_error,
+        "add_candidate_error": add_candidate_error,
+        "specialties": Specialty.objects.filter(is_active=True).order_by("code"),
+        "selected_specialty_id": selected_specialty_id,
+        "selected_specialty": selected_specialty,
+        "candidate_items": candidate_items,
     }
 
     return render(request, "directory/project_detail.html", context)

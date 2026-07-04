@@ -238,3 +238,93 @@ button:hover,
 .card p {
     line-height: 1.45;
 }
+
+.detail-form label {
+    display: block;
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 1.8fr 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 14px;
+}
+
+.form-grid select,
+.form-grid input,
+.form-row-wide textarea {
+    width: 100%;
+}
+
+.form-row-wide {
+    margin-bottom: 14px;
+}
+
+.errorlist {
+    color: #b91c1c;
+    margin: 6px 0 0 0;
+    padding-left: 18px;
+    font-size: 13px;
+}
+
+@media (max-width: 1000px) {
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 1000px) {
+    .form-grid-compact {
+        grid-template-columns: 1fr;
+    }
+}
+
+.candidate-filter-form {
+    margin-top: 14px;
+}
+
+.candidate-filter-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+
+.candidate-specialty-field {
+    width: 420px;
+}
+
+.candidate-specialty-field label {
+    display: block;
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+
+.candidate-specialty-field select {
+    width: 100%;
+}
+
+.candidate-button-field {
+    display: flex;
+    align-items: flex-end;
+}
+
+.candidate-button-field button {
+    white-space: nowrap;
+}
+
+@media (max-width: 700px) {
+    .candidate-specialty-field {
+        width: 100%;
+    }
+
+    .candidate-button-field {
+        width: 100%;
+    }
+
+    .candidate-button-field button {
+        width: 100%;
+    }
+}

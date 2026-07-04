@@ -46,7 +46,166 @@
 
 <div class="card">
     <h2>Подбор исполнителей</h2>
+    <div class="card">
+        <h2>Подбор кандидатов</h2>
 
+        <p class="muted">
+            Выберите специальность. Ниже будут показаны только активные исполнители,
+            которые работают по этой специальности и ещё не добавлены в данный проект.
+        </p>
+
+        {% if add_candidate_error %}
+            <p style="color: #b91c1c;"><strong>{{ add_candidate_error }}</strong></p>
+        {% endif %}
+
+        <form method="get" class="candidate-filter-form">
+            <div class="candidate-filter-row">
+                <div class="candidate-specialty-field">
+                    <label for="specialty">Специальность</label>
+                    <select name="specialty" id="specialty">
+                        <option value="">Выберите специальность</option>
+                        {% for specialty in specialties %}
+                            <option value="{{ specialty.id }}"
+                                {% if selected_specialty_id == specialty.id|stringformat:"s" %}selected{% endif %}>
+                                {{ specialty.code }} — {{ specialty.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="candidate-button-field">
+                    <button type="submit">Показать кандидатов</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    {% if selected_specialty %}
+        <div class="card">
+            <h2>Кандидаты: {{ selected_specialty.code }} — {{ selected_specialty.name }}</h2>
+
+            {% if candidate_items %}
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Исполнитель</th>
+                                <th>Контакты</th>
+                                <th>Revit</th>
+                                <th>Статус</th>
+                                <th>Последние КП по специальности</th>
+                                <th>Последние проекты по специальности</th>
+                                <th>Последний комментарий</th>
+                                <th>Действие</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in candidate_items %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ item.executor }}</strong><br>
+                                        <a class="small" href="/executors/{{ item.executor.id }}/">
+                                            Карточка исполнителя
+                                        </a>
+                                    </td>
+
+                                    <td>
+                                        {% if item.executor.phone %}
+                                            {{ item.executor.phone }}<br>
+                                        {% endif %}
+
+                                        {% if item.executor.email %}
+                                            {{ item.executor.email }}<br>
+                                        {% endif %}
+
+                                        {% if item.executor.messenger %}
+                                            {{ item.executor.messenger }}
+                                        {% endif %}
+
+                                        {% if not item.executor.phone and not item.executor.email and not item.executor.messenger %}
+                                            —
+                                        {% endif %}
+                                    </td>
+
+                                    <td>
+                                        {% if item.executor.works_in_revit %}
+                                            Да
+                                        {% else %}
+                                            Нет
+                                        {% endif %}
+
+                                        {% if item.executor.revit_comment %}
+                                            <br>
+                                            <span class="small muted">
+                                                {{ item.executor.revit_comment }}
+                                            </span>
+                                        {% endif %}
+                                    </td>
+
+                                    <td>
+                                        {{ item.executor.status }}
+
+                                        {% if item.executor.status_comment %}
+                                            <br>
+                                            <span class="small muted">
+                                                {{ item.executor.status_comment }}
+                                            </span>
+                                        {% endif %}
+                                    </td>
+
+                                    <td>
+                                        {% if item.offers %}
+                                            {% for offer in item.offers %}
+                                                {{ offer }}<br>
+                                            {% endfor %}
+                                        {% else %}
+                                            —
+                                        {% endif %}
+                                    </td>
+
+                                    <td>
+                                        {% if item.projects %}
+                                            {% for candidate_project in item.projects %}
+                                                {{ candidate_project }}<br>
+                                            {% endfor %}
+                                        {% else %}
+                                            —
+                                        {% endif %}
+                                    </td>
+
+                                    <td>
+                                        {% if item.last_comment %}
+                                            {{ item.last_comment.comment }}<br>
+                                            <span class="small muted">
+                                                {{ item.last_comment.created_at|date:"d.m.Y H:i" }}
+                                            </span>
+                                        {% else %}
+                                            —
+                                        {% endif %}
+                                    </td>
+
+                                    <td>
+                                        <form method="post">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="action" value="add_candidate">
+                                            <input type="hidden" name="specialty_id" value="{{ selected_specialty.id }}">
+                                            <input type="hidden" name="executor_id" value="{{ item.executor.id }}">
+                                            <button type="submit">Добавить</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p>
+                    Подходящих кандидатов нет. Возможно, все активные исполнители по этой специальности
+                    уже добавлены в проект.
+                </p>
+            {% endif %}
+        </div>
+    {% endif %}
     {% if selection_items %}
         <div class="table-wrap">
             <table>
