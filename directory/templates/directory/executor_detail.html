@@ -158,6 +158,39 @@
 <div class="card">
     <h2>Комментарии пользователей</h2>
 
+    <form method="post" action="/executors/{{ executor.id }}/comments/add/" class="executor-comment-form">
+        {% csrf_token %}
+
+        <div class="executor-comment-grid">
+            <div>
+                <label for="comment_project_id">Проект</label>
+                <select name="project_id" id="comment_project_id">
+                    <option value="">Без привязки к проекту</option>
+                    {% for project in projects %}
+                        <option value="{{ project.id }}">
+                            {{ project.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label for="comment">Комментарий</label>
+                <textarea
+                    name="comment"
+                    id="comment"
+                    rows="3"
+                    required
+                    placeholder="Комментарий по исполнителю"
+                ></textarea>
+            </div>
+
+            <div class="executor-comment-button">
+                <button type="submit">Добавить</button>
+            </div>
+        </div>
+    </form>
+
     {% if comments %}
         <div class="timeline">
             {% for comment in comments %}

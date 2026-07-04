@@ -7,6 +7,7 @@ from django.utils.dateparse import parse_date
 
 from .models import (
     Executor,
+    ExecutorComment,
     ExecutorStatus,
     ObjectType,
     Project,
@@ -14,6 +15,7 @@ from .models import (
     SelectionNegotiation,
     SelectionStatus,
     Specialty,
+
 )
 
 @login_required
@@ -393,6 +395,7 @@ def executor_detail(request, executor_id):
         "specialties": specialties,
         "comments": comments,
         "selection_items": selection_items,
+        "projects": Project.objects.order_by("name"),
     }
 
     return render(request, "directory/executor_detail.html", context)
@@ -722,3 +725,28 @@ def delete_project_selection(request, selection_id):
         selection.delete()
 
     return redirect("project_detail", project_id=project_id)
+
+@login_required
+def add_executor_comment(request, executor_id):
+    executor = get_object_or_404(Executor, id=executor_id)
+
+    if request.method != "POST":
+        return redirect("executor_detail", executor_id=executor.id)
+
+    project_id = request.POST.get("project_id")
+    comment_text = request.POST.get("comment", "").strip()
+
+    project = None
+
+    if project_id:
+        project = Project.objects.filter(id=project_id).first()
+
+    if comment_text:
+        ExecutorComment.objects.create(
+            executor=executor,
+            project=project,
+            user=request.user,
+            comment=comment_text,
+        )
+
+    return redirect("executor_detail", executor_id=executor.id)
