@@ -366,6 +366,18 @@
                             >
                                 OK
                             </button>
+
+                            <form
+                                method="post"
+                                action="/selections/{{ item.selection.id }}/delete/"
+                                onsubmit="return confirm('Удалить строку подбора по исполнителю {{ item.selection.executor }}?');"
+                                class="delete-selection-form"
+                            >
+                                {% csrf_token %}
+                                <button type="submit" class="compact-button danger-button">
+                                    Удалить
+                                </button>
+                            </form>
                         </td>
                     </tr>
                 {% endfor %}

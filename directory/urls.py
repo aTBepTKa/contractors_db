@@ -11,4 +11,5 @@ urlpatterns = [
     path("projects/<int:project_id>/", views.project_detail, name="project_detail"),
     path("selections/<int:selection_id>/update/", views.update_project_selection, name="update_project_selection"),
     path("selections/<int:selection_id>/negotiations/add/", views.add_selection_negotiation, name="add_selection_negotiation"),
+    path("selections/<int:selection_id>/delete/", views.delete_project_selection, name="delete_project_selection"),
 ]

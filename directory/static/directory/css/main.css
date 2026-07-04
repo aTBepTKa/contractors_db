@@ -501,3 +501,16 @@ button:hover,
 .secondary-button:hover {
     background: #475569;
 }
+
+.delete-selection-form {
+    margin-top: 6px;
+}
+
+.danger-button {
+    background: #dc2626;
+    border-color: #dc2626;
+}
+
+.danger-button:hover {
+    background: #b91c1c;
+}

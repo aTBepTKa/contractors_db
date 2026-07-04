@@ -561,3 +561,17 @@ def add_selection_negotiation(request, selection_id):
         )
 
     return redirect("project_detail", project_id=selection.project.id)
+
+@login_required
+def delete_project_selection(request, selection_id):
+    selection = get_object_or_404(
+        ProjectSelection.objects.select_related("project"),
+        id=selection_id,
+    )
+
+    project_id = selection.project.id
+
+    if request.method == "POST":
+        selection.delete()
+
+    return redirect("project_detail", project_id=project_id)
