@@ -67,6 +67,7 @@
                     <tr>
                         <th>Проект</th>
                         <th>Тип объекта</th>
+                        <th>ГИП</th>
                         <th>Площадь, м²</th>
                         <th>Специальности</th>
                         <th>Строк подбора</th>
@@ -90,6 +91,13 @@
                             </td>
 
                             <td>{{ item.project.object_type }}</td>
+                            <td>
+                                {% if item.project.chief_project_engineer %}
+                                    {{ item.project.chief_project_engineer.get_full_name|default:item.project.chief_project_engineer.username }}
+                                {% else %}
+                                    <span class="muted">Не указан</span>
+                                {% endif %}
+                            </td>
                             <td>{{ item.project.area|default:"—" }}</td>
                             <td>{{ item.specialties|default:"—" }}</td>
                             <td>{{ item.selections_count }}</td>

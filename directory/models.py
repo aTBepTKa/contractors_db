@@ -197,31 +197,54 @@ class ObjectType(models.Model):
 
 class Project(models.Model):
     name = models.CharField(
-        "Наименование объекта",
         max_length=255,
+        verbose_name="Наименование объекта",
     )
+
     object_type = models.ForeignKey(
         ObjectType,
-        verbose_name="Тип объекта",
         on_delete=models.PROTECT,
         related_name="projects",
+        verbose_name="Тип объекта",
     )
-    area = models.PositiveIntegerField(
-        "Площадь объекта, м²",
+
+    chief_project_engineer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
         null=True,
         blank=True,
+        related_name="managed_projects",
+        verbose_name="ГИП",
     )
-    comment = models.TextField(
-        "Комментарий",
+
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        null=True,
         blank=True,
+        related_name="created_projects",
+        verbose_name="Создал",
     )
+
+    area = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        verbose_name="Площадь, м²",
+    )
+
+    comment = models.TextField(
+        blank=True,
+        verbose_name="Комментарий",
+    )
+
     created_at = models.DateTimeField(
-        "Дата создания",
         auto_now_add=True,
+        verbose_name="Дата создания",
     )
+
     updated_at = models.DateTimeField(
-        "Дата изменения",
         auto_now=True,
+        verbose_name="Дата обновления",
     )
 
     class Meta:

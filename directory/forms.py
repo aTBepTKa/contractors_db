@@ -1,4 +1,5 @@
 from django import forms
+from django.contrib.auth import get_user_model
 
 from .models import (
     EmploymentType,
@@ -112,18 +113,35 @@ class ProjectForm(forms.ModelForm):
         fields = (
             "name",
             "object_type",
+            "chief_project_engineer",
             "area",
             "comment",
         )
 
     def __init__(self, *args, **kwargs):
+        self.current_user = kwargs.pop("user", None)
+
         super().__init__(*args, **kwargs)
+
+        User = get_user_model()
 
         self.fields["object_type"].queryset = ObjectType.objects.filter(
             is_active=True
         ).order_by("name")
 
+        self.fields["chief_project_engineer"].queryset = User.objects.filter(
+            is_active=True
+        ).order_by("last_name", "first_name", "username")
+
+        self.fields["chief_project_engineer"].required = True
         self.fields["area"].required = False
         self.fields["comment"].required = False
 
         self.fields["comment"].widget = forms.Textarea(attrs={"rows": 4})
+
+        if (
+            self.current_user
+            and not self.instance.pk
+            and not self.initial.get("chief_project_engineer")
+        ):
+            self.initial["chief_project_engineer"] = self.current_user.id

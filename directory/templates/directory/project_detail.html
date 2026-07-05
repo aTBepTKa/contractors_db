@@ -20,9 +20,32 @@
 <div class="grid">
     <div class="card">
         <h2>Основные данные</h2>
+        <p>
+            <strong>Тип объекта:</strong> {{ project.object_type }}<br>
 
-        <p><strong>Тип объекта:</strong> {{ project.object_type }}</p>
-        <p><strong>Площадь:</strong> {{ project.area|default:"—" }} м²</p>
+            <strong>ГИП:</strong>
+            {% if project.chief_project_engineer %}
+                {{ project.chief_project_engineer.get_full_name|default:project.chief_project_engineer.username }}
+            {% else %}
+                <span class="muted">Не указан</span>
+            {% endif %}
+            <br>
+
+            <strong>Создал:</strong>
+            {% if project.created_by %}
+                {{ project.created_by.get_full_name|default:project.created_by.username }}
+            {% else %}
+                <span class="muted">Не указан</span>
+            {% endif %}
+            <br>
+
+            <strong>Площадь:</strong>
+            {% if project.area %}
+                {{ project.area }} м²
+            {% else %}
+                —
+            {% endif %}
+        </p>
         <p><strong>Дата создания:</strong> {{ project.created_at|date:"d.m.Y H:i" }}</p>
         <p><strong>Дата изменения:</strong> {{ project.updated_at|date:"d.m.Y H:i" }}</p>
     </div>

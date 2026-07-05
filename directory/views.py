@@ -353,16 +353,11 @@ def project_list(request):
     search_query = request.GET.get("q", "").strip()
     object_type_id = request.GET.get("object_type")
 
-    projects = (
-        Project.objects
-        .select_related("object_type")
-        .prefetch_related(
-            "selections__specialty",
-            "selections__executor",
-            "selections__status",
-        )
-        .order_by("name")
-    )
+    projects = Project.objects.select_related(
+        "object_type",
+        "chief_project_engineer",
+        "created_by",
+    ).order_by("name")
 
     selected_object_type = None
 
@@ -420,13 +415,20 @@ def project_list(request):
 @login_required
 def project_create(request):
     if request.method == "POST":
-        form = ProjectForm(request.POST)
+        form = ProjectForm(request.POST, user=request.user)
 
         if form.is_valid():
-            project = form.save()
+            project = form.save(commit=False)
+            project.created_by = request.user
+
+            if not project.chief_project_engineer:
+                project.chief_project_engineer = request.user
+
+            project.save()
+
             return redirect("project_detail", project_id=project.id)
     else:
-        form = ProjectForm()
+        form = ProjectForm(user=request.user)
 
     context = {
         "form": form,
@@ -441,18 +443,29 @@ def project_create(request):
 @login_required
 def project_update(request, project_id):
     project = get_object_or_404(
-        Project.objects.select_related("object_type"),
+        Project.objects.select_related(
+            "object_type",
+            "chief_project_engineer",
+            "created_by",
+        ),
         id=project_id,
     )
 
     if request.method == "POST":
-        form = ProjectForm(request.POST, instance=project)
+        form = ProjectForm(
+            request.POST,
+            instance=project,
+            user=request.user,
+        )
 
         if form.is_valid():
             project = form.save()
             return redirect("project_detail", project_id=project.id)
     else:
-        form = ProjectForm(instance=project)
+        form = ProjectForm(
+            instance=project,
+            user=request.user,
+        )
 
     context = {
         "form": form,
@@ -469,7 +482,11 @@ def project_update(request, project_id):
 def project_detail(request, project_id):
     project = get_object_or_404(
         Project.objects
-        .select_related("object_type")
+        .select_related(
+            "object_type",
+            "chief_project_engineer",
+            "created_by",
+        )
         .prefetch_related(
             "selections__specialty",
             "selections__executor",
