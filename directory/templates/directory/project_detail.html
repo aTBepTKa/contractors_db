@@ -49,12 +49,29 @@
         <p><strong>Дата создания:</strong> {{ project.created_at|date:"d.m.Y H:i" }}</p>
         <p><strong>Дата изменения:</strong> {{ project.updated_at|date:"d.m.Y H:i" }}</p>
     </div>
-
+    
     <div class="card">
         <h2>Подбор</h2>
 
-        <p><strong>Строк подбора:</strong> {{ selections_count }}</p>
-        <p><strong>Сумма КП:</strong> {{ total_offer_amount }} руб.</p>
+        <p>
+            <strong>Строк подбора:</strong> {{ selections_count }}
+        </p>
+
+        <p>
+            <strong>Диапазон КП по проекту:</strong><br>
+
+            {% if project_sections_with_amount %}
+                от {{ project_min_total }} руб.<br>
+                до {{ project_max_total }} руб.
+            {% else %}
+                <span class="muted">КП пока не указаны.</span>
+            {% endif %}
+        </p>
+
+        <p class="small muted">
+            Диапазон считается по потребностям проекта: по каждому разделу берётся
+            минимальное и максимальное КП, затем значения суммируются по разделам.
+        </p>
     </div>
 
     <div class="card">
@@ -66,6 +83,143 @@
             <p class="muted">Комментарий по проекту не заполнен.</p>
         {% endif %}
     </div>
+</div>
+
+<div class="card">
+    <h2>Потребности проекта по разделам</h2>
+
+    <p class="muted">
+        Разделы, по которым нужно подобрать исполнителей для проекта.
+        Закрытым считается раздел, по которому есть хотя бы один исполнитель со статусом «Готов».
+    </p>
+
+    <div class="stat-grid">
+        <div class="stat-card">
+            <div class="stat-number">{{ needs_count }}</div>
+            <div class="stat-label">Нужных разделов</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-number">{{ closed_needs_count }}</div>
+            <div class="stat-label">Закрыто</div>
+        </div>
+    </div>
+
+    <form method="post" class="need-add-form">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="add_specialty_need">
+
+        <div class="need-add-grid">
+            <div>
+                <label for="need_specialty_id">Добавить раздел</label>
+                <select name="specialty_id" id="need_specialty_id" required>
+                    <option value="">— Выберите раздел —</option>
+                    {% for specialty in available_need_specialties %}
+                        <option value="{{ specialty.id }}">
+                            {{ specialty.code }} — {{ specialty.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label for="need_comment">Комментарий</label>
+                <input
+                    type="text"
+                    name="comment"
+                    id="need_comment"
+                    placeholder="Например: нужен сильный исполнитель по стадии Р"
+                >
+            </div>
+
+            <div class="need-add-button">
+                <button type="submit">Добавить</button>
+            </div>
+        </div>
+    </form>
+
+    {% if need_items %}
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Раздел</th>
+                        <th>Статус</th>
+                        <th>Кандидаты</th>
+                        <th>Готово</th>
+                        <th>КП, мин.</th>
+                        <th>КП, макс.</th>
+                        <th>Комментарий</th>
+                        <th>Действие</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for item in need_items %}
+                        <tr>
+                            <td>
+                                <strong>{{ item.need.specialty.code }}</strong><br>
+                                <span class="small muted">
+                                    {{ item.need.specialty.name }}
+                                </span>
+                            </td>
+
+                            <td>
+                                <span class="need-status {{ item.status_css_class }}">
+                                    {{ item.status_label }}
+                                </span>
+                            </td>
+
+                            <td>{{ item.selections_count }}</td>
+
+                            <td>{{ item.ready_count }}</td>
+
+                            <td>
+                                {% if item.min_offer_amount %}
+                                    {{ item.min_offer_amount }} руб.
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                {% if item.max_offer_amount %}
+                                    {{ item.max_offer_amount }} руб.
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                {% if item.need.comment %}
+                                    {{ item.need.comment }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                <form
+                                    method="post"
+                                    action="/project-specialty-needs/{{ item.need.id }}/delete/"
+                                    onsubmit="return confirm('Удалить потребность по разделу? Подбор исполнителей по этому разделу не удалится.');"
+                                >
+                                    {% csrf_token %}
+                                    <button type="submit" class="small-danger-button">
+                                        Удалить
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="muted">
+            Потребности по разделам пока не добавлены.
+        </p>
+    {% endif %}
 </div>
 
 <div class="card">
@@ -285,7 +439,10 @@
                 </thead>
                 <tbody>
                 {% for item in selection_items %}
-                    <tr class="{% if item.selection.executor.status.name != 'Активный' %}inactive{% endif %}">
+                    <tr
+                        id="selection-{{ item.selection.id }}"
+                        class="{% if item.selection.executor.status.name != 'Активный' %}inactive{% endif %}"
+                    >
                         <td class="col-specialty">
                             <strong>{{ item.selection.specialty.code }}</strong><br>
                             <span class="small muted">{{ item.selection.specialty.name }}</span>

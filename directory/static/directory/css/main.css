@@ -970,3 +970,58 @@ button:hover,
 .negotiation-add-form {
     margin-top: 6px;
 }
+
+.need-add-form {
+    margin: 16px 0;
+}
+
+.need-add-grid {
+    display: grid;
+    grid-template-columns: minmax(220px, 1fr) minmax(300px, 2fr) 140px;
+    gap: 12px;
+    align-items: end;
+}
+
+.need-add-grid label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+}
+
+.need-add-grid select,
+.need-add-grid input {
+    width: 100%;
+}
+
+.need-add-button button {
+    width: 100%;
+}
+
+.need-status {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.need-status-closed {
+    background: #ecfdf3;
+    color: #166534;
+}
+
+.need-status-in-progress {
+    background: #fff7ed;
+    color: #9a3412;
+}
+
+.need-status-empty {
+    background: #fef2f2;
+    color: #991b1b;
+}
+
+@media (max-width: 900px) {
+    .need-add-grid {
+        grid-template-columns: 1fr;
+    }
+}

@@ -255,6 +255,63 @@ class Project(models.Model):
     def __str__(self):
         return self.name
 
+class ProjectSpecialtyNeed(models.Model):
+    project = models.ForeignKey(
+        Project,
+        on_delete=models.CASCADE,
+        related_name="specialty_needs",
+        verbose_name="Проект",
+    )
+
+    specialty = models.ForeignKey(
+        Specialty,
+        on_delete=models.PROTECT,
+        related_name="project_needs",
+        verbose_name="Специальность",
+    )
+
+    is_required = models.BooleanField(
+        default=True,
+        verbose_name="Требуется",
+    )
+
+    comment = models.TextField(
+        blank=True,
+        verbose_name="Комментарий",
+    )
+
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="created_project_specialty_needs",
+        verbose_name="Создал",
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Дата создания",
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name="Дата обновления",
+    )
+
+    class Meta:
+        verbose_name = "Потребность проекта по разделу"
+        verbose_name_plural = "Потребности проектов по разделам"
+        ordering = ["project__name", "specialty__code"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["project", "specialty"],
+                name="unique_project_specialty_need",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.project} — {self.specialty}"
 
 class ExecutorComment(models.Model):
     executor = models.ForeignKey(

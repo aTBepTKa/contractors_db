@@ -13,6 +13,7 @@ from .models import (
     ObjectType,
     Project,
     ProjectSelection,
+    ProjectSpecialtyNeed,
     SelectionNegotiation,
     SelectionStatus,
     Specialty,
@@ -50,6 +51,29 @@ def get_selection_status_css_class(status_name):
         return "selection-status-rejected"
 
     return "selection-status-default"
+
+def get_need_status(selection_list):
+    has_ready = any(
+        selection.status and selection.status.name == "Готов"
+        for selection in selection_list
+    )
+
+    if has_ready:
+        return {
+            "label": "Закрыт",
+            "css_class": "need-status-closed",
+        }
+
+    if selection_list:
+        return {
+            "label": "В работе",
+            "css_class": "need-status-in-progress",
+        }
+
+    return {
+        "label": "Нет кандидатов",
+        "css_class": "need-status-empty",
+    }
 
 @login_required
 def executor_search(request):
@@ -540,7 +564,26 @@ def project_detail(request, project_id):
                     )
 
             selected_specialty_id = specialty_id
+            
+        elif action == "add_specialty_need":
+            specialty_id = request.POST.get("specialty_id")
+            comment = request.POST.get("comment", "").strip()
 
+            specialty = Specialty.objects.filter(id=specialty_id).first()
+
+            if specialty:
+                try:
+                    ProjectSpecialtyNeed.objects.create(
+                        project=project,
+                        specialty=specialty,
+                        comment=comment,
+                        created_by=request.user,
+                    )
+                except IntegrityError:
+                    pass
+
+            return redirect("project_detail", project_id=project.id)
+        
         else:
             return redirect("project_detail", project_id=project.id)
     
@@ -656,12 +699,106 @@ def project_detail(request, project_id):
                 ),
             }
         )
+        
+    needs = (
+        project.specialty_needs
+        .select_related("specialty", "created_by")
+        .order_by("specialty__code")
+    )
+
+    need_items = []
+
+    all_project_selections = list(
+        project.selections
+        .select_related("specialty", "executor", "status")
+        .all()
+    )
+
+    project_min_total = 0
+    project_max_total = 0
+    project_sections_with_amount = 0
+
+    for need in needs:
+        need_selections = [
+            selection
+            for selection in all_project_selections
+            if selection.specialty_id == need.specialty_id
+        ]
+
+        offer_amounts = [
+            selection.offer_amount
+            for selection in need_selections
+            if selection.offer_amount is not None
+        ]
+
+        min_offer_amount = min(offer_amounts) if offer_amounts else None
+        max_offer_amount = max(offer_amounts) if offer_amounts else None
+
+        if min_offer_amount is not None:
+            project_min_total += min_offer_amount
+            project_max_total += max_offer_amount
+            project_sections_with_amount += 1
+
+        ready_count = sum(
+            1
+            for selection in need_selections
+            if selection.status and selection.status.name == "Готов"
+        )
+
+        need_status = get_need_status(need_selections)
+
+        need_items.append(
+            {
+                "need": need,
+                "selections": need_selections,
+                "selections_count": len(need_selections),
+                "ready_count": ready_count,
+                "min_offer_amount": format_money(min_offer_amount),
+                "max_offer_amount": format_money(max_offer_amount),
+                "status_label": need_status["label"],
+                "status_css_class": need_status["css_class"],
+            }
+        )
+
+    used_need_specialty_ids = [
+        item["need"].specialty_id
+        for item in need_items
+    ]
+
+    available_need_specialties = (
+        Specialty.objects
+        .filter(is_active=True)
+        .exclude(id__in=used_need_specialty_ids)
+        .order_by("code")
+    )
+
+    used_need_specialty_ids = [
+        item["need"].specialty_id
+        for item in need_items
+    ]
+
+    available_need_specialties = (
+        Specialty.objects
+        .filter(is_active=True)
+        .exclude(id__in=used_need_specialty_ids)
+        .order_by("code")
+    )    
 
     context = {
         "project": project,
         "selection_items": selection_items,
         "selections_count": len(selection_items),
-        "total_offer_amount": format_money(total_offer_amount),
+        "project_min_total": format_money(project_min_total),
+        "project_max_total": format_money(project_max_total),
+        "project_sections_with_amount": project_sections_with_amount,
+        
+        "need_items": need_items,
+        "available_need_specialties": available_need_specialties,
+        "needs_count": len(need_items),
+        "closed_needs_count": sum(
+            1 for item in need_items if item["ready_count"] > 0
+        ),
+        
         "add_candidate_error": add_candidate_error,
         "specialties": Specialty.objects.filter(is_active=True).order_by("code"),
         "selected_specialty_id": selected_specialty_id,
@@ -681,21 +818,30 @@ def update_project_selection(request, selection_id):
         id=selection_id,
     )
 
-    if request.method != "POST":
-        return redirect("project_detail", project_id=selection.project.id)
+    project_id = selection.project.id
 
-    status_id = request.POST.get("status")
+    if request.method != "POST":
+        return redirect(f"/projects/{project_id}/#selection-{selection.id}")
+
+    status_id = request.POST.get("status_id")
     offer_amount_raw = request.POST.get("offer_amount", "").strip()
     comment = request.POST.get("comment", "").strip()
 
-    status = SelectionStatus.objects.filter(id=status_id).first()
-
-    if status:
-        selection.status = status
+    if status_id:
+        status = SelectionStatus.objects.filter(id=status_id).first()
+        if status:
+            selection.status = status
 
     if offer_amount_raw:
+        normalized_amount = (
+            offer_amount_raw
+            .replace(" ", "")
+            .replace("\u00a0", "")
+            .replace(",", ".")
+        )
+
         try:
-            selection.offer_amount = int(offer_amount_raw.replace(" ", ""))
+            selection.offer_amount = int(float(normalized_amount))
         except ValueError:
             pass
     else:
@@ -704,7 +850,7 @@ def update_project_selection(request, selection_id):
     selection.comment = comment
     selection.save()
 
-    return redirect("project_detail", project_id=selection.project.id)
+    return redirect(f"/projects/{project_id}/#selection-{selection.id}")
 
 @login_required
 def add_selection_negotiation(request, selection_id):
@@ -726,7 +872,7 @@ def add_selection_negotiation(request, selection_id):
             user=request.user,
         )
 
-    return redirect("project_detail", project_id=selection.project.id)
+    return redirect(f"/projects/{selection.project.id}/#selection-{selection.id}")
 
 @login_required
 def delete_project_selection(request, selection_id):
@@ -889,8 +1035,23 @@ def delete_selection_negotiation(request, negotiation_id):
     )
 
     project_id = negotiation.selection.project.id
+    selection_id = negotiation.selection.id
 
     if request.method == "POST":
         negotiation.delete()
+
+    return redirect(f"/projects/{project_id}/#selection-{selection_id}")
+
+@login_required
+def delete_project_specialty_need(request, need_id):
+    need = get_object_or_404(
+        ProjectSpecialtyNeed.objects.select_related("project"),
+        id=need_id,
+    )
+
+    project_id = need.project.id
+
+    if request.method == "POST":
+        need.delete()
 
     return redirect("project_detail", project_id=project_id)

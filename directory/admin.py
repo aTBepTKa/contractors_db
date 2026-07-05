@@ -9,6 +9,7 @@ from .models import (
     ObjectType,
     Project,
     ProjectSelection,
+    ProjectSpecialtyNeed,
     SelectionNegotiation,
     SelectionStatus,
     Specialty,
@@ -65,6 +66,18 @@ class ExecutorProjectSelectionInline(admin.TabularInline):
     def has_add_permission(self, request, obj=None):
         return False
 
+class ProjectSpecialtyNeedInline(admin.TabularInline):
+    model = ProjectSpecialtyNeed
+    extra = 0
+    fields = (
+        "specialty",
+        "is_required",
+        "comment",
+        "created_by",
+    )
+    readonly_fields = (
+        "created_by",
+    )
 
 class ProjectSelectionInline(admin.TabularInline):
     model = ProjectSelection
@@ -241,7 +254,10 @@ class ProjectAdmin(admin.ModelAdmin):
     list_filter = ("object_type",)
     search_fields = ("name", "comment")
     readonly_fields = ("created_at", "updated_at")
-    inlines = (ProjectSelectionInline,)
+    inlines = [
+        ProjectSpecialtyNeedInline,
+        ProjectSelectionInline,
+    ]
 
     @admin.display(description="Строк подбора")
     def selections_count(self, obj):
@@ -306,3 +322,25 @@ class ExecutorCommentAdmin(admin.ModelAdmin):
     )
     readonly_fields = ("created_at",)
     autocomplete_fields = ("executor", "project", "user")
+    
+    
+@admin.register(ProjectSpecialtyNeed)
+class ProjectSpecialtyNeedAdmin(admin.ModelAdmin):
+    list_display = (
+        "project",
+        "specialty",
+        "is_required",
+        "created_by",
+        "updated_at",
+    )
+    list_filter = (
+        "is_required",
+        "specialty",
+        "project",
+    )
+    search_fields = (
+        "project__name",
+        "specialty__code",
+        "specialty__name",
+        "comment",
+    )
