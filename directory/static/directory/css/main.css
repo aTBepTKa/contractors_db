@@ -801,3 +801,11 @@ button:hover,
         grid-template-columns: 1fr;
     }
 }
+
+.negotiation-add-no-date {
+    grid-template-columns: minmax(0, 1fr) 34px;
+}
+
+.negotiation-add-no-date textarea {
+    grid-column: auto;
+}

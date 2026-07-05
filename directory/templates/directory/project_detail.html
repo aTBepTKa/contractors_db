@@ -370,13 +370,7 @@
                                 <div class="muted">—</div>
                             {% endif %}
 
-                            <div class="negotiation-add">                                
-                                <input
-                                    type="date"
-                                    name="event_date"
-                                    class="compact-input"
-                                    form="negotiation-add-{{ item.selection.id }}"
-                                >
+                            <div class="negotiation-add negotiation-add-no-date">
                                 <textarea
                                     name="comment"
                                     rows="2"
@@ -384,10 +378,12 @@
                                     placeholder="Новая запись переговоров"
                                     form="negotiation-add-{{ item.selection.id }}"
                                 ></textarea>
+
                                 <button
                                     type="submit"
                                     class="compact-button secondary-button"
                                     form="negotiation-add-{{ item.selection.id }}"
+                                    title="Добавить запись переговоров"
                                 >
                                     +
                                 </button>
