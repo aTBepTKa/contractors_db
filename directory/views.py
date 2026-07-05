@@ -4,7 +4,7 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
-from .forms import ExecutorForm
+from .forms import ExecutorForm, ProjectForm
 from .models import (
     Executor,
     ExecutorComment,
@@ -400,6 +400,54 @@ def project_list(request):
     }
 
     return render(request, "directory/project_list.html", context)
+
+@login_required
+def project_create(request):
+    if request.method == "POST":
+        form = ProjectForm(request.POST)
+
+        if form.is_valid():
+            project = form.save()
+            return redirect("project_detail", project_id=project.id)
+    else:
+        form = ProjectForm()
+
+    context = {
+        "form": form,
+        "page_title": "Новый проект",
+        "submit_text": "Создать проект",
+        "back_url": "/projects/",
+        "back_text": "← К списку проектов",
+    }
+
+    return render(request, "directory/project_form.html", context)
+
+@login_required
+def project_update(request, project_id):
+    project = get_object_or_404(
+        Project.objects.select_related("object_type"),
+        id=project_id,
+    )
+
+    if request.method == "POST":
+        form = ProjectForm(request.POST, instance=project)
+
+        if form.is_valid():
+            project = form.save()
+            return redirect("project_detail", project_id=project.id)
+    else:
+        form = ProjectForm(instance=project)
+
+    context = {
+        "form": form,
+        "project": project,
+        "page_title": f"Редактирование проекта: {project.name}",
+        "submit_text": "Сохранить изменения",
+        "back_url": f"/projects/{project.id}/",
+        "back_text": "← К карточке проекта",
+    }
+
+    return render(request, "directory/project_form.html", context)
 
 @login_required
 def project_detail(request, project_id):

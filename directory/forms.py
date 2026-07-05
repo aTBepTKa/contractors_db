@@ -1,6 +1,15 @@
 from django import forms
 
-from .models import EmploymentType, Executor, ExecutorStatus, ProjectSelection, SelectionStatus, Specialty
+from .models import (
+    EmploymentType,
+    Executor,
+    ExecutorStatus,
+    ObjectType,
+    Project,
+    ProjectSelection,
+    SelectionStatus,
+    Specialty,
+)
 
 
 class ProjectSelectionForm(forms.ModelForm):
@@ -96,3 +105,25 @@ class ExecutorForm(forms.ModelForm):
 
         self.fields["revit_comment"].widget = forms.Textarea(attrs={"rows": 3})
         self.fields["general_comment"].widget = forms.Textarea(attrs={"rows": 4})
+
+class ProjectForm(forms.ModelForm):
+    class Meta:
+        model = Project
+        fields = (
+            "name",
+            "object_type",
+            "area",
+            "comment",
+        )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.fields["object_type"].queryset = ObjectType.objects.filter(
+            is_active=True
+        ).order_by("name")
+
+        self.fields["area"].required = False
+        self.fields["comment"].required = False
+
+        self.fields["comment"].widget = forms.Textarea(attrs={"rows": 4})

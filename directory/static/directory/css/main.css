@@ -859,3 +859,37 @@ button:hover,
         grid-template-columns: 1fr;
     }
 }
+
+.project-form {
+    display: grid;
+    gap: 18px;
+}
+
+.project-form-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(220px, 1fr) minmax(180px, 1fr);
+    gap: 16px;
+    align-items: start;
+}
+
+.project-form-wide {
+    min-width: 0;
+}
+
+.project-form label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+}
+
+.project-form input,
+.project-form select,
+.project-form textarea {
+    width: 100%;
+}
+
+@media (max-width: 1000px) {
+    .project-form-grid {
+        grid-template-columns: 1fr;
+    }
+}

@@ -15,7 +15,9 @@ urlpatterns = [
 
     # Проекты
     path("projects/", views.project_list, name="project_list"),
+    path("projects/add/", views.project_create, name="project_create"),
     path("projects/<int:project_id>/", views.project_detail, name="project_detail"),
+    path("projects/<int:project_id>/edit/", views.project_update, name="project_update"),
 
     # Строки подбора
     path("selections/<int:selection_id>/update/", views.update_project_selection, name="update_project_selection"),

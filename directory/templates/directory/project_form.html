@@ -1,0 +1,57 @@
+{% extends "directory/base.html" %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>{{ page_title }}</h1>
+
+    <p class="muted">
+        Основные данные проекта: наименование объекта, тип, площадь и комментарий.
+    </p>
+
+    <p>
+        <a class="button" href="{{ back_url }}">{{ back_text }}</a>
+    </p>
+</div>
+
+<div class="card">
+    <form method="post" class="project-form">
+        {% csrf_token %}
+
+        {% if form.errors %}
+            <div class="form-errors">
+                Проверьте заполнение полей.
+            </div>
+        {% endif %}
+
+        <div class="project-form-grid">
+            <div class="project-form-wide">
+                {{ form.name.label_tag }}
+                {{ form.name }}
+                {{ form.name.errors }}
+            </div>
+
+            <div>
+                {{ form.object_type.label_tag }}
+                {{ form.object_type }}
+                {{ form.object_type.errors }}
+            </div>
+
+            <div>
+                {{ form.area.label_tag }}
+                {{ form.area }}
+                {{ form.area.errors }}
+            </div>
+        </div>
+
+        <div class="project-form-wide">
+            {{ form.comment.label_tag }}
+            {{ form.comment }}
+            {{ form.comment.errors }}
+        </div>
+
+        <button type="submit">{{ submit_text }}</button>
+    </form>
+</div>
+{% endblock %}
