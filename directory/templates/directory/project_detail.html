@@ -81,41 +81,6 @@
         </form>
     </div>
 
-    <form method="get" class="selection-filter-form">
-        <div class="selection-filter-row">
-            <div>
-                <label for="selection_specialty">Специальность</label>
-                <select name="selection_specialty" id="selection_specialty">
-                    <option value="">Все специальности</option>
-                    {% for specialty in specialties %}
-                        <option value="{{ specialty.id }}"
-                            {% if selection_specialty_id == specialty.id|stringformat:"s" %}selected{% endif %}>
-                            {{ specialty.code }} — {{ specialty.name }}
-                        </option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <div>
-                <label for="selection_status">Статус</label>
-                <select name="selection_status" id="selection_status">
-                    <option value="">Все статусы</option>
-                    {% for status in selection_statuses %}
-                        <option value="{{ status.id }}"
-                            {% if selection_status_id == status.id|stringformat:"s" %}selected{% endif %}>
-                            {{ status.name }}
-                        </option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <div class="selection-filter-buttons">
-                <button type="submit">Фильтровать</button>
-                <a class="button" href="/projects/{{ project.id }}/">Сбросить</a>
-            </div>
-        </div>
-    </form>
-
     {% if selected_specialty %}
         <div class="card">
             <h2>Кандидаты: {{ selected_specialty.code }} — {{ selected_specialty.name }}</h2>
@@ -242,6 +207,42 @@
             {% endif %}
         </div>
     {% endif %}
+
+    <form method="get" class="selection-filter-form">
+        <div class="selection-filter-row">
+            <div>
+                <label for="selection_specialty">Специальность</label>
+                <select name="selection_specialty" id="selection_specialty">
+                    <option value="">Все специальности</option>
+                    {% for specialty in specialties %}
+                        <option value="{{ specialty.id }}"
+                            {% if selection_specialty_id == specialty.id|stringformat:"s" %}selected{% endif %}>
+                            {{ specialty.code }} — {{ specialty.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label for="selection_status">Статус</label>
+                <select name="selection_status" id="selection_status">
+                    <option value="">Все статусы</option>
+                    {% for status in selection_statuses %}
+                        <option value="{{ status.id }}"
+                            {% if selection_status_id == status.id|stringformat:"s" %}selected{% endif %}>
+                            {{ status.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="selection-filter-buttons">
+                <button type="submit">Фильтровать</button>
+                <a class="button" href="/projects/{{ project.id }}/">Сбросить</a>
+            </div>
+        </div>
+    </form>
+
     {% if selection_items %}
         <div class="table-wrap">
             <table>
