@@ -1330,3 +1330,29 @@ button:hover,
         white-space: normal;
     }
 }
+
+.header-user {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    font-size: 13px;
+    color: #475569;
+}
+
+.user-role {
+    display: inline-block;
+    padding: 3px 7px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.user-role-admin {
+    background: #eef2ff;
+    color: #3730a3;
+}
+
+.user-role-user {
+    background: #ecfdf3;
+    color: #166534;
+}

@@ -10,7 +10,7 @@
 </head>
 
 <body>
-    <header class="header">
+    <header class="header">        
         <div class="header-inner">
             <div class="header-title">
                 <a href="/">База исполнителей</a>
@@ -20,8 +20,27 @@
                 <a href="/">Главная</a>
                 <a href="/executors/">Исполнители</a>
                 <a href="/projects/">Проекты</a>
-                <a href="/admin/">Админка</a>
+
+                {% if request.user.is_staff or request.user.is_superuser %}
+                    <a href="/admin/">Админка</a>
+                {% endif %}
             </nav>
+        </div>
+
+        <div class="header-user">
+            {% if request.user.is_authenticated %}
+                <span>
+                    {{ request.user.get_full_name|default:request.user.username }}
+                </span>
+
+                {% if request.user.is_superuser %}
+                    <span class="user-role user-role-admin">Администратор</span>
+                {% elif request.user.is_staff %}
+                    <span class="user-role user-role-admin">Администратор</span>
+                {% else %}
+                    <span class="user-role user-role-user">Пользователь</span>
+                {% endif %}
+            {% endif %}
         </div>
     </header>
 
