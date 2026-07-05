@@ -1,17 +1,17 @@
 {% extends "directory/base.html" %}
 
-{% block title %}Новый исполнитель{% endblock %}
+{% block title %}{{ page_title }}{% endblock %}
 
 {% block content %}
 <div class="card">
-    <h1>Новый исполнитель</h1>
+    <h1>{{ page_title }}</h1>
 
     <p class="muted">
-        Создание карточки исполнителя. Специальности добавляются следующим шагом после создания карточки.
+        Основная карточка исполнителя: ФИО, контакты, статус, Revit, специальности и комментарии.
     </p>
 
     <p>
-        <a class="button" href="/executors/">← К списку исполнителей</a>
+        <a class="button" href="{{ back_url }}">{{ back_text }}</a>
     </p>
 </div>
 
@@ -113,7 +113,7 @@
             {{ form.general_comment.errors }}
         </div>
 
-        <button type="submit">Создать исполнителя</button>
+        <button type="submit">{{ submit_text }}</button>
     </form>
 </div>
 {% endblock %}

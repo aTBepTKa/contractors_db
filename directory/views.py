@@ -671,6 +671,17 @@ def add_executor_comment(request, executor_id):
 
     return redirect("executor_detail", executor_id=executor.id)
 
+def update_executor_specialties(executor, specialties):
+    ExecutorSpecialty.objects.filter(executor=executor).exclude(
+        specialty__in=specialties
+    ).delete()
+
+    for specialty in specialties:
+        ExecutorSpecialty.objects.get_or_create(
+            executor=executor,
+            specialty=specialty,
+        )
+
 @login_required
 def executor_create(request):
     if request.method == "POST":
@@ -678,14 +689,8 @@ def executor_create(request):
 
         if form.is_valid():
             executor = form.save()
-
             specialties = form.cleaned_data.get("specialties")
-
-            for specialty in specialties:
-                ExecutorSpecialty.objects.get_or_create(
-                    executor=executor,
-                    specialty=specialty,
-                )
+            update_executor_specialties(executor, specialties)
 
             return redirect("executor_detail", executor_id=executor.id)
     else:
@@ -693,6 +698,10 @@ def executor_create(request):
 
     context = {
         "form": form,
+        "page_title": "Новый исполнитель",
+        "submit_text": "Создать исполнителя",
+        "back_url": "/executors/",
+        "back_text": "← К списку исполнителей",
     }
 
     return render(request, "directory/executor_form.html", context)
@@ -729,3 +738,33 @@ def delete_executor_specialty(request, executor_specialty_id):
         executor_specialty.delete()
 
     return redirect("executor_detail", executor_id=executor_id)
+
+@login_required
+def executor_update(request, executor_id):
+    executor = get_object_or_404(
+        Executor.objects.select_related("status", "employment_type"),
+        id=executor_id,
+    )
+
+    if request.method == "POST":
+        form = ExecutorForm(request.POST, instance=executor)
+
+        if form.is_valid():
+            executor = form.save()
+            specialties = form.cleaned_data.get("specialties")
+            update_executor_specialties(executor, specialties)
+
+            return redirect("executor_detail", executor_id=executor.id)
+    else:
+        form = ExecutorForm(instance=executor)
+
+    context = {
+        "form": form,
+        "executor": executor,
+        "page_title": f"Редактирование: {executor}",
+        "submit_text": "Сохранить изменения",
+        "back_url": f"/executors/{executor.id}/",
+        "back_text": "← К карточке исполнителя",
+    }
+
+    return render(request, "directory/executor_form.html", context)
