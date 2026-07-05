@@ -34,6 +34,22 @@ def format_money(value):
         return None
     return f"{value:,}".replace(",", " ")
 
+def get_selection_status_css_class(status_name):
+    normalized_name = (status_name or "").strip().lower()
+
+    if normalized_name == "новый":
+        return "selection-status-new"
+
+    if normalized_name == "рассматривает":
+        return "selection-status-review"
+
+    if normalized_name == "готов":
+        return "selection-status-ready"
+
+    if normalized_name == "отказ":
+        return "selection-status-rejected"
+
+    return "selection-status-default"
 
 @login_required
 def executor_search(request):
@@ -602,16 +618,25 @@ def project_detail(request, project_id):
         if selection.offer_amount:
             total_offer_amount += selection.offer_amount
 
-        negotiations = selection.negotiations.all().order_by(
-            "-event_date",
-            "-created_at",
+        negotiations = list(
+            selection.negotiations.all().order_by(
+                "-event_date",
+                "-created_at",
+            )
         )
+
+        last_negotiation = negotiations[0] if negotiations else None
+        old_negotiations = negotiations[1:] if len(negotiations) > 1 else []
 
         selection_items.append(
             {
                 "selection": selection,
                 "offer_amount": format_money(selection.offer_amount),
-                "negotiations": negotiations,
+                "last_negotiation": last_negotiation,
+                "old_negotiations": old_negotiations,
+                "status_css_class": get_selection_status_css_class(
+                    selection.status.name
+                ),
             }
         )
 
@@ -838,3 +863,17 @@ def executor_update(request, executor_id):
     }
 
     return render(request, "directory/executor_form.html", context)
+
+@login_required
+def delete_selection_negotiation(request, negotiation_id):
+    negotiation = get_object_or_404(
+        SelectionNegotiation.objects.select_related("selection__project"),
+        id=negotiation_id,
+    )
+
+    project_id = negotiation.selection.project.id
+
+    if request.method == "POST":
+        negotiation.delete()
+
+    return redirect("project_detail", project_id=project_id)

@@ -893,3 +893,80 @@ button:hover,
         grid-template-columns: 1fr;
     }
 }
+
+.selection-status-wrap {
+    border-radius: 6px;
+    padding: 3px;
+}
+
+.selection-status-wrap select {
+    border: 1px solid transparent;
+}
+
+.selection-status-new {
+    background: #eef2ff;
+}
+
+.selection-status-review {
+    background: #fff7ed;
+}
+
+.selection-status-ready {
+    background: #ecfdf3;
+}
+
+.selection-status-rejected {
+    background: #fef2f2;
+}
+
+.selection-status-default {
+    background: #f8fafc;
+}
+
+.last-negotiation {
+    padding: 6px 8px;
+    background: #f8fafc;
+    border: 1px solid #d9dee5;
+    border-radius: 6px;
+    margin-bottom: 6px;
+}
+
+.negotiation-history {
+    margin-bottom: 6px;
+}
+
+.negotiation-history summary {
+    cursor: pointer;
+    font-size: 12px;
+    color: #4b5563;
+    margin-bottom: 4px;
+}
+
+.old-negotiation {
+    padding: 6px 8px;
+    border-left: 3px solid #d9dee5;
+    background: #ffffff;
+    margin-bottom: 4px;
+}
+
+.inline-form {
+    display: inline;
+}
+
+.link-button {
+    border: none;
+    background: none;
+    padding: 0;
+    font: inherit;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.danger-link {
+    color: #991b1b;
+    font-size: 12px;
+}
+
+.negotiation-add-form {
+    margin-top: 6px;
+}

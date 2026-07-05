@@ -328,15 +328,20 @@
                             {% csrf_token %}
                         </form>
 
-                        <td class="col-status">                            
-                            <select name="status" class="compact-select" form="selection-update-{{ item.selection.id }}">
-                                {% for status in selection_statuses %}
-                                    <option value="{{ status.id }}"
-                                        {% if item.selection.status_id == status.id %}selected{% endif %}>
-                                        {{ status.name }}
-                                    </option>
-                                {% endfor %}
-                            </select>
+                        <td class="col-status">
+                            <div class="selection-status-wrap {{ item.status_css_class }}">
+                                <select
+                                    name="status_id"
+                                    class="compact-select"
+                                    form="selection-update-{{ item.selection.id }}"
+                                >
+                                    {% for status in selection_statuses %}
+                                        <option value="{{ status.id }}" {% if item.selection.status_id == status.id %}selected{% endif %}>
+                                            {{ status.name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
                         </td>
 
                         <td class="col-amount">
@@ -360,36 +365,89 @@
                         </td>
 
                         <td class="col-negotiations">
-                            {% if item.negotiations %}
-                                {% for negotiation in item.negotiations %}
-                                    <div class="timeline-item compact-timeline">
-                                        <strong>{{ negotiation.event_date|date:"d.m.Y" }}</strong><br>
-                                        {{ negotiation.comment }}<br>
-                                        <span class="small muted">{{ negotiation.user }}</span>
+                            {% if item.last_negotiation %}
+                                <div class="last-negotiation">
+                                    <div class="small muted">
+                                        {{ item.last_negotiation.event_date|date:"d.m.Y" }}
                                     </div>
-                                {% endfor %}
+
+                                    <div>
+                                        {{ item.last_negotiation.comment|linebreaksbr }}
+                                    </div>
+
+                                    <form
+                                        method="post"
+                                        action="/negotiations/{{ item.last_negotiation.id }}/delete/"
+                                        onsubmit="return confirm('Удалить последнюю запись переговоров?');"
+                                        class="inline-form"
+                                    >
+                                        {% csrf_token %}
+                                        <button type="submit" class="link-button danger-link">
+                                            удалить
+                                        </button>
+                                    </form>
+                                </div>
                             {% else %}
-                                <div class="muted">—</div>
+                                <div class="small muted">Записей нет.</div>
                             {% endif %}
 
-                            <div class="negotiation-add negotiation-add-no-date">
-                                <textarea
-                                    name="comment"
-                                    rows="2"
-                                    class="compact-textarea"
-                                    placeholder="Новая запись переговоров"
-                                    form="negotiation-add-{{ item.selection.id }}"
-                                ></textarea>
+                            {% if item.old_negotiations %}
+                                <details class="negotiation-history">
+                                    <summary>
+                                        История: {{ item.old_negotiations|length }}
+                                    </summary>
 
-                                <button
-                                    type="submit"
-                                    class="compact-button secondary-button"
-                                    form="negotiation-add-{{ item.selection.id }}"
-                                    title="Добавить запись переговоров"
-                                >
-                                    +
-                                </button>
-                            </div>
+                                    {% for negotiation in item.old_negotiations %}
+                                        <div class="old-negotiation">
+                                            <div class="small muted">
+                                                {{ negotiation.event_date|date:"d.m.Y" }}
+                                            </div>
+
+                                            <div>
+                                                {{ negotiation.comment|linebreaksbr }}
+                                            </div>
+
+                                            <form
+                                                method="post"
+                                                action="/negotiations/{{ negotiation.id }}/delete/"
+                                                onsubmit="return confirm('Удалить запись переговоров?');"
+                                                class="inline-form"
+                                            >
+                                                {% csrf_token %}
+                                                <button type="submit" class="link-button danger-link">
+                                                    удалить
+                                                </button>
+                                            </form>
+                                        </div>
+                                    {% endfor %}
+                                </details>
+                            {% endif %}
+
+                            <form
+                                method="post"
+                                action="/selections/{{ item.selection.id }}/negotiations/add/"
+                                id="negotiation-add-{{ item.selection.id }}"
+                                class="negotiation-add-form"
+                            >
+                                {% csrf_token %}
+
+                                <div class="negotiation-add negotiation-add-no-date">
+                                    <textarea
+                                        name="comment"
+                                        rows="2"
+                                        class="compact-textarea"
+                                        placeholder="Новая запись"
+                                    ></textarea>
+
+                                    <button
+                                        type="submit"
+                                        class="compact-button secondary-button"
+                                        title="Добавить запись переговоров"
+                                    >
+                                        +
+                                    </button>
+                                </div>
+                            </form>
                         </td>
 
                         <td class="col-save">
