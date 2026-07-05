@@ -557,7 +557,18 @@ def project_detail(request, project_id):
                         executor=executor,
                         status=new_status,
                     )
-                    return redirect("project_detail", project_id=project.id)
+
+                    ProjectSpecialtyNeed.objects.get_or_create(
+                        project=project,
+                        specialty=specialty,
+                        defaults={
+                            "created_by": request.user,
+                        },
+                    )
+
+                    return redirect(
+                        f"/projects/{project.id}/?specialty={specialty.id}#candidate-selection"
+                    )
                 except IntegrityError:
                     add_candidate_error = (
                         "Этот исполнитель уже добавлен в проект по выбранной специальности."
@@ -628,18 +639,18 @@ def project_detail(request, project_id):
                     reverse=True,
                 )
 
-                offers = [
-                    format_money(selection.offer_amount)
-                    for selection in candidate_selections
-                    if selection.offer_amount is not None
-                ][:5]
-
                 projects = []
                 seen_project_ids = set()
 
                 for selection in candidate_selections:
                     if selection.project_id not in seen_project_ids:
-                        projects.append(selection.project.name)
+                        projects.append(
+                            {
+                                "name": selection.project.name,
+                                "specialty": selection.specialty.code,
+                                "amount": format_money(selection.offer_amount),
+                            }
+                        )
                         seen_project_ids.add(selection.project_id)
 
                     if len(projects) >= 5:
@@ -650,7 +661,6 @@ def project_detail(request, project_id):
                 candidate_items.append(
                     {
                         "executor": candidate,
-                        "offers": offers,
                         "projects": projects,
                         "last_comment": last_comment,
                     }

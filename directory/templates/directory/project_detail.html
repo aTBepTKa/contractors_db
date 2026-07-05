@@ -150,6 +150,7 @@
                         <th>КП, мин.</th>
                         <th>КП, макс.</th>
                         <th>Комментарий</th>
+                        <th>Подбор</th>
                         <th>Действие</th>
                     </tr>
                 </thead>
@@ -199,6 +200,15 @@
                             </td>
 
                             <td>
+                                <a
+                                    class="small-button"
+                                    href="/projects/{{ project.id }}/?specialty={{ item.need.specialty.id }}#candidate-selection"
+                                >
+                                    Подобрать
+                                </a>
+                            </td>
+
+                            <td>
                                 <form
                                     method="post"
                                     action="/project-specialty-needs/{{ item.need.id }}/delete/"
@@ -225,8 +235,19 @@
 <div class="card">
     <h2>Подбор исполнителей</h2>
 
-    <div class="card">
+    <div class="card" id="candidate-selection">
         <h2>Подбор кандидатов</h2>
+
+        {% if selected_specialty %}
+            <p class="muted">
+                Выбран раздел:
+                <strong>{{ selected_specialty.code }} — {{ selected_specialty.name }}</strong>
+            </p>
+        {% else %}
+            <p class="muted">
+                Выберите раздел, чтобы увидеть подходящих исполнителей.
+            </p>
+        {% endif %}
 
         <p class="muted">
             Выберите специальность. Ниже будут показаны только активные исполнители,
@@ -272,8 +293,7 @@
                                 <th>Контакты</th>
                                 <th>Revit</th>
                                 <th>Статус</th>
-                                <th>Последние КП по специальности</th>
-                                <th>Последние проекты по специальности</th>
+                                <th>Последние проекты</th>
                                 <th>Последний комментарий</th>
                                 <th>Действие</th>
                             </tr>
@@ -333,19 +353,18 @@
                                     </td>
 
                                     <td>
-                                        {% if item.offers %}
-                                            {% for offer in item.offers %}
-                                                {{ offer }}<br>
-                                            {% endfor %}
-                                        {% else %}
-                                            —
-                                        {% endif %}
-                                    </td>
-
-                                    <td>
                                         {% if item.projects %}
-                                            {% for candidate_project in item.projects %}
-                                                {{ candidate_project }}<br>
+                                            {% for project in item.projects %}
+                                                <strong>{{ project.name }}</strong><br>
+                                                <span class="small muted">
+                                                    {{ project.specialty }}
+                                                    {% if project.amount %}
+                                                        / {{ project.amount }} руб.
+                                                    {% else %}
+                                                        / сумма не указана
+                                                    {% endif %}
+                                                </span>
+                                                <br>
                                             {% endfor %}
                                         {% else %}
                                             —
@@ -369,7 +388,9 @@
                                             <input type="hidden" name="action" value="add_candidate">
                                             <input type="hidden" name="specialty_id" value="{{ selected_specialty.id }}">
                                             <input type="hidden" name="executor_id" value="{{ item.executor.id }}">
-                                            <button type="submit">Добавить</button>
+                                            <button type="submit" class="small-button">
+                                                Добавить
+                                            </button>
                                         </form>
                                     </td>
                                 </tr>
