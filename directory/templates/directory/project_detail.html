@@ -3,107 +3,129 @@
 {% block title %}{{ project.name }} — Проект{% endblock %}
 
 {% block content %}
-<div class="card">
-    <h1>{{ project.name }}</h1>
+<div class="card project-header-card">
+    <div class="project-header-top">
+        <div>
+            <h1>{{ project.name }}</h1>
 
-    <p class="muted">
-        Карточка проекта: основные данные, подбор исполнителей, суммы КП и переговоры.
-    </p>
+            <div class="project-header-meta">
+                <span>
+                    <strong>Тип:</strong> {{ project.object_type }}
+                </span>
+
+                <span>
+                    <strong>ГИП:</strong>
+                    {% if project.chief_project_engineer %}
+                        {{ project.chief_project_engineer.get_full_name|default:project.chief_project_engineer.username }}
+                    {% else %}
+                        <span class="muted">Не указан</span>
+                    {% endif %}
+                </span>
+
+                <span>
+                    <strong>Создал:</strong>
+                    {% if project.created_by %}
+                        {{ project.created_by.get_full_name|default:project.created_by.username }}
+                    {% else %}
+                        <span class="muted">Не указан</span>
+                    {% endif %}
+                </span>
+
+                <span>
+                    <strong>Площадь:</strong>
+                    {% if project.area %}
+                        {{ project.area }} м²
+                    {% else %}
+                        —
+                    {% endif %}
+                </span>
+
+                <span>
+                    <strong>Создан:</strong> {{ project.created_at|date:"d.m.Y H:i" }}
+                </span>
+
+                <span>
+                    <strong>Изменён:</strong> {{ project.updated_at|date:"d.m.Y H:i" }}
+                </span>
+            </div>
+        </div>
+
+        <div class="project-header-actions">
+            <a class="button" href="/projects/">← К списку проектов</a>
+            <a class="button" href="/projects/{{ project.id }}/edit/">Редактировать</a>
+            <a class="button" href="/admin/directory/project/{{ project.id }}/change/">Открыть в админке</a>
+        </div>
+    </div>
+
+    {% if project.comment %}
+        <div class="project-header-comment">
+            <strong>Комментарий:</strong>
+            {{ project.comment|linebreaksbr }}
+        </div>
+    {% endif %}
+</div>
+
+<div class="card project-summary-card">
+    <h2>Сводка подбора</h2>
+
+    <div class="summary-metrics">
+        <div class="summary-metric">
+            <div class="summary-number">{{ needs_count }}</div>
+            <div class="summary-label">Разделов</div>
+        </div>
+
+        <div class="summary-metric">
+            <div class="summary-number">{{ closed_needs_count }}</div>
+            <div class="summary-label">Закрыто</div>
+        </div>
+
+        <div class="summary-metric">
+            <div class="summary-number">{{ needs_in_progress_count }}</div>
+            <div class="summary-label">В работе</div>
+        </div>
+
+        <div class="summary-metric">
+            <div class="summary-number">{{ needs_empty_count }}</div>
+            <div class="summary-label">Без кандидатов</div>
+        </div>
+
+        <div class="summary-metric">
+            <div class="summary-number">{{ selections_count }}</div>
+            <div class="summary-label">Кандидатов</div>
+        </div>
+    </div>
+
+    <div class="summary-status-list">
+        <div>Новый: <strong>{{ selection_status_counters.Новый }}</strong></div>
+        <div>Рассматривает: <strong>{{ selection_status_counters.Рассматривает }}</strong></div>
+        <div>Готов: <strong>{{ selection_status_counters.Готов }}</strong></div>
+        <div>Отказ: <strong>{{ selection_status_counters.Отказ }}</strong></div>
+    </div>
 
     <p>
-        <a class="button" href="/projects/">← К списку проектов</a>
-        <a class="button" href="/projects/{{ project.id }}/edit/">Редактировать</a>
-        <a class="button" href="/admin/directory/project/{{ project.id }}/change/">Открыть в админке</a>
+        <strong>Диапазон КП:</strong><br>
+
+        {% if project_sections_with_amount %}
+            от {{ project_min_total }} руб.<br>
+            до {{ project_max_total }} руб.
+        {% else %}
+            <span class="muted">КП пока не указаны.</span>
+        {% endif %}
+    </p>
+
+    <p class="small muted">
+        Диапазон считается по потребностям проекта: по каждому разделу берётся
+        минимальное и максимальное КП, затем значения суммируются по разделам.
     </p>
 </div>
 
-<div class="grid">
-    <div class="card">
-        <h2>Основные данные</h2>
-        <p>
-            <strong>Тип объекта:</strong> {{ project.object_type }}<br>
-
-            <strong>ГИП:</strong>
-            {% if project.chief_project_engineer %}
-                {{ project.chief_project_engineer.get_full_name|default:project.chief_project_engineer.username }}
-            {% else %}
-                <span class="muted">Не указан</span>
-            {% endif %}
-            <br>
-
-            <strong>Создал:</strong>
-            {% if project.created_by %}
-                {{ project.created_by.get_full_name|default:project.created_by.username }}
-            {% else %}
-                <span class="muted">Не указан</span>
-            {% endif %}
-            <br>
-
-            <strong>Площадь:</strong>
-            {% if project.area %}
-                {{ project.area }} м²
-            {% else %}
-                —
-            {% endif %}
-        </p>
-        <p><strong>Дата создания:</strong> {{ project.created_at|date:"d.m.Y H:i" }}</p>
-        <p><strong>Дата изменения:</strong> {{ project.updated_at|date:"d.m.Y H:i" }}</p>
-    </div>
-    
-    <div class="card">
-        <h2>Подбор</h2>
-
-        <p>
-            <strong>Строк подбора:</strong> {{ selections_count }}
-        </p>
-
-        <p>
-            <strong>Диапазон КП по проекту:</strong><br>
-
-            {% if project_sections_with_amount %}
-                от {{ project_min_total }} руб.<br>
-                до {{ project_max_total }} руб.
-            {% else %}
-                <span class="muted">КП пока не указаны.</span>
-            {% endif %}
-        </p>
-
-        <p class="small muted">
-            Диапазон считается по потребностям проекта: по каждому разделу берётся
-            минимальное и максимальное КП, затем значения суммируются по разделам.
-        </p>
-    </div>
-
-    <div class="card">
-        <h2>Комментарий</h2>
-
-        {% if project.comment %}
-            <p>{{ project.comment }}</p>
-        {% else %}
-            <p class="muted">Комментарий по проекту не заполнен.</p>
-        {% endif %}
-    </div>
-</div>
-
-<div class="card">
-    <h2>Потребности проекта по разделам</h2>
+<div class="card project-needs-card">
+    <h2>Рабочая таблица подбора по разделам</h2>
 
     <p class="muted">
-        Разделы, по которым нужно подобрать исполнителей для проекта.
-        Закрытым считается раздел, по которому есть хотя бы один исполнитель со статусом «Готов».
+        Основной экран подбора команды: по каждому нужному разделу показаны
+        кандидаты, КП, статус и последние переговоры.
     </p>
-
-    <div class="stat-grid">
-        <div class="stat-card">
-            <div class="stat-number">{{ needs_count }}</div>
-            <div class="stat-label">Нужных разделов</div>
-        </div>
-
-        <div class="stat-card">
-            <div class="stat-number">{{ closed_needs_count }}</div>
-            <div class="stat-label">Закрыто</div>
-        </div>
-    </div>
 
     <form method="post" class="need-add-form">
         {% csrf_token %}
@@ -138,100 +160,382 @@
         </div>
     </form>
 
-    {% if need_items %}
-        <div class="table-wrap">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Раздел</th>
-                        <th>Статус</th>
-                        <th>Кандидаты</th>
-                        <th>Готово</th>
-                        <th>КП, мин.</th>
-                        <th>КП, макс.</th>
-                        <th>Комментарий</th>
-                        <th>Подбор</th>
-                        <th>Действие</th>
-                    </tr>
-                </thead>
+    {% if grouped_need_items %}
+        <div class="work-table">
+            {% for item in grouped_need_items %}
+                <div class="work-section" id="need-{{ item.need.id }}">
+                    <div class="work-section-header">
+                        <div>
+                            <div class="work-section-title">
+                                {{ item.need.specialty.code }} — {{ item.need.specialty.name }}
+                            </div>
 
-                <tbody>
-                    {% for item in need_items %}
-                        <tr>
-                            <td>
-                                <strong>{{ item.need.specialty.code }}</strong><br>
-                                <span class="small muted">
-                                    {{ item.need.specialty.name }}
-                                </span>
-                            </td>
-
-                            <td>
-                                <span class="need-status {{ item.status_css_class }}">
-                                    {{ item.status_label }}
-                                </span>
-                            </td>
-
-                            <td>{{ item.selections_count }}</td>
-
-                            <td>{{ item.ready_count }}</td>
-
-                            <td>
-                                {% if item.min_offer_amount %}
-                                    {{ item.min_offer_amount }} руб.
-                                {% else %}
-                                    —
-                                {% endif %}
-                            </td>
-
-                            <td>
-                                {% if item.max_offer_amount %}
-                                    {{ item.max_offer_amount }} руб.
-                                {% else %}
-                                    —
-                                {% endif %}
-                            </td>
-
-                            <td>
-                                {% if item.need.comment %}
+                            {% if item.need.comment %}
+                                <div class="small muted">
                                     {{ item.need.comment }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="work-section-meta">
+                            <span class="need-status {{ item.status_css_class }}">
+                                {{ item.status_label }}
+                            </span>
+
+                            <span class="small muted">
+                                Кандидатов: {{ item.selections_count }}
+                            </span>
+
+                            <span class="small muted">
+                                Готово: {{ item.ready_count }}
+                            </span>
+
+                            <span class="small muted">
+                                КП:
+                                {% if item.min_offer_amount %}
+                                    {{ item.min_offer_amount }}–{{ item.max_offer_amount }} руб.
                                 {% else %}
                                     —
                                 {% endif %}
-                            </td>
+                            </span>
 
-                            <td>
-                                <a
-                                    class="small-button"
-                                    href="/projects/{{ project.id }}/?specialty={{ item.need.specialty.id }}#candidate-selection"
-                                >
-                                    Подобрать
-                                </a>
-                            </td>
+                            <a
+                                class="small-button"
+                                href="/projects/{{ project.id }}/?specialty={{ item.need.specialty.id }}#need-{{ item.need.id }}"
+                            >
+                                Подобрать
+                            </a>
 
-                            <td>
+                            <form
+                                method="post"
+                                action="/project-specialty-needs/{{ item.need.id }}/delete/"
+                                onsubmit="return confirm('Удалить потребность по разделу? Подбор исполнителей по этому разделу не удалится.');"
+                                class="inline-form"
+                            >
+                                {% csrf_token %}
+                                <button type="submit" class="link-button danger-link">
+                                    удалить раздел
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    {% if item.selection_rows %}
+                        <div class="work-selection-list">
+                            {% for row in item.selection_rows %}
                                 <form
                                     method="post"
-                                    action="/project-specialty-needs/{{ item.need.id }}/delete/"
-                                    onsubmit="return confirm('Удалить потребность по разделу? Подбор исполнителей по этому разделу не удалится.');"
+                                    action="/selections/{{ row.selection.id }}/update/"
+                                    id="selection-update-{{ row.selection.id }}"
                                 >
                                     {% csrf_token %}
-                                    <button type="submit" class="small-danger-button">
-                                        Удалить
-                                    </button>
                                 </form>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+
+                                <div
+                                    class="work-selection-row {% if row.selection.executor.status.name != 'Активный' %}inactive{% endif %}"
+                                    id="selection-{{ row.selection.id }}"
+                                >
+                                    <div class="work-cell work-executor">
+                                        <strong>{{ row.selection.executor }}</strong><br>
+
+                                        <a class="small" href="/executors/{{ row.selection.executor.id }}/">
+                                            Карточка исполнителя
+                                        </a>
+
+                                        <div class="small muted">
+                                            {{ row.selection.executor.phone|default:"—" }}<br>
+                                            {{ row.selection.executor.email|default:"—" }}
+                                        </div>
+                                    </div>
+
+                                    <div class="work-cell work-status">
+                                        <label class="small muted">Статус</label>
+
+                                        <div class="selection-status-wrap {{ row.status_css_class }}">
+                                            <select
+                                                name="status_id"
+                                                class="compact-select"
+                                                form="selection-update-{{ row.selection.id }}"
+                                            >
+                                                {% for status in selection_statuses %}
+                                                    <option value="{{ status.id }}" {% if row.selection.status_id == status.id %}selected{% endif %}>
+                                                        {{ status.name }}
+                                                    </option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="work-cell work-amount">
+                                        <label class="small muted">КП</label>
+
+                                        <input
+                                            type="text"
+                                            name="offer_amount"
+                                            value="{{ row.offer_amount }}"
+                                            class="compact-input"
+                                            form="selection-update-{{ row.selection.id }}"
+                                        >
+                                    </div>
+
+                                    <div class="work-cell work-comment">
+                                        <label class="small muted">Комментарий</label>
+
+                                        <textarea
+                                            name="comment"
+                                            class="compact-textarea"
+                                            form="selection-update-{{ row.selection.id }}"
+                                        >{{ row.selection.comment }}</textarea>
+                                    </div>
+
+                                    <div class="work-cell work-negotiations">
+                                        <label class="small muted">Переговоры</label>
+
+                                        {% if row.last_negotiation %}
+                                            <div class="last-negotiation">
+                                                <div class="small muted">
+                                                    {{ row.last_negotiation.event_date|date:"d.m.Y" }}
+                                                </div>
+
+                                                <div>
+                                                    {{ row.last_negotiation.comment|linebreaksbr }}
+                                                </div>
+
+                                                <form
+                                                    method="post"
+                                                    action="/negotiations/{{ row.last_negotiation.id }}/delete/"
+                                                    onsubmit="return confirm('Удалить последнюю запись переговоров?');"
+                                                    class="inline-form"
+                                                >
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="link-button danger-link">
+                                                        удалить
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        {% else %}
+                                            <div class="small muted">Записей нет.</div>
+                                        {% endif %}
+
+                                        {% if row.old_negotiations %}
+                                            <details class="negotiation-history">
+                                                <summary>
+                                                    История: {{ row.old_negotiations|length }}
+                                                </summary>
+
+                                                {% for negotiation in row.old_negotiations %}
+                                                    <div class="old-negotiation">
+                                                        <div class="small muted">
+                                                            {{ negotiation.event_date|date:"d.m.Y" }}
+                                                        </div>
+
+                                                        <div>
+                                                            {{ negotiation.comment|linebreaksbr }}
+                                                        </div>
+
+                                                        <form
+                                                            method="post"
+                                                            action="/negotiations/{{ negotiation.id }}/delete/"
+                                                            onsubmit="return confirm('Удалить запись переговоров?');"
+                                                            class="inline-form"
+                                                        >
+                                                            {% csrf_token %}
+                                                            <button type="submit" class="link-button danger-link">
+                                                                удалить
+                                                            </button>
+                                                        </form>
+                                                    </div>
+                                                {% endfor %}
+                                            </details>
+                                        {% endif %}
+
+                                        <form
+                                            method="post"
+                                            action="/selections/{{ row.selection.id }}/negotiations/add/"
+                                            class="negotiation-add-form"
+                                        >
+                                            {% csrf_token %}
+
+                                            <div class="negotiation-add negotiation-add-no-date">
+                                                <textarea
+                                                    name="comment"
+                                                    rows="2"
+                                                    class="compact-textarea"
+                                                    placeholder="Новая запись"
+                                                ></textarea>
+
+                                                <button
+                                                    type="submit"
+                                                    class="compact-button secondary-button"
+                                                    title="Добавить запись переговоров"
+                                                >
+                                                    +
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+
+                                    <div class="work-cell work-actions">
+                                        <button
+                                            type="submit"
+                                            class="compact-button"
+                                            form="selection-update-{{ row.selection.id }}"
+                                        >
+                                            OK
+                                        </button>
+
+                                        <form
+                                            method="post"
+                                            action="/selections/{{ row.selection.id }}/delete/"
+                                            onsubmit="return confirm('Удалить строку подбора?');"
+                                        >
+                                            {% csrf_token %}
+                                            <button type="submit" class="small-danger-button">
+                                                Удалить
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="work-empty">
+                            <span class="muted">Кандидаты по разделу пока не добавлены.</span>
+
+                        <a
+                            class="small-button"
+                            href="/projects/{{ project.id }}/?specialty={{ item.need.specialty.id }}#need-{{ item.need.id }}"
+                        >
+                            Подобрать кандидатов
+                        </a>
+                        </div>
+                    {% endif %}
+
+                    {% if item.is_candidate_section_active %}
+                        <div class="inline-candidate-selection">
+                            <h3>Кандидаты по разделу {{ item.need.specialty.code }}</h3>
+
+                            {% if add_candidate_error %}
+                                <div class="form-errors">
+                                    {{ add_candidate_error }}
+                                </div>
+                            {% endif %}
+
+                            {% if item.candidate_items %}
+                                <div class="table-wrap">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Исполнитель</th>
+                                                <th>Контакты</th>
+                                                <th>Revit</th>
+                                                <th>Статус</th>
+                                                <th>Последние проекты</th>
+                                                <th>Последний комментарий</th>
+                                                <th>Действие</th>
+                                            </tr>
+                                        </thead>
+
+                                        <tbody>
+                                            {% for candidate in item.candidate_items %}
+                                                <tr>
+                                                    <td>
+                                                        <strong>{{ candidate.executor }}</strong><br>
+                                                        <a class="small" href="/executors/{{ candidate.executor.id }}/">
+                                                            Карточка исполнителя
+                                                        </a>
+                                                    </td>
+
+                                                    <td>
+                                                        {{ candidate.executor.phone|default:"—" }}<br>
+                                                        {{ candidate.executor.email|default:"—" }}<br>
+                                                        {{ candidate.executor.messenger|default:"—" }}
+                                                    </td>
+
+                                                    <td>
+                                                        {% if candidate.executor.works_in_revit %}
+                                                            Да
+                                                        {% else %}
+                                                            Нет
+                                                        {% endif %}
+
+                                                        {% if candidate.executor.revit_comment %}
+                                                            <br>
+                                                            <span class="small muted">
+                                                                {{ candidate.executor.revit_comment }}
+                                                            </span>
+                                                        {% endif %}
+                                                    </td>
+
+                                                    <td>
+                                                        {{ candidate.executor.status }}
+                                                    </td>
+
+                                                    <td>
+                                                        {% if candidate.projects %}
+                                                            {% for project in candidate.projects %}
+                                                                <strong>{{ project.name }}</strong><br>
+                                                                <span class="small muted">
+                                                                    {{ project.specialty }}
+                                                                    {% if project.amount %}
+                                                                        / {{ project.amount }} руб.
+                                                                    {% else %}
+                                                                        / сумма не указана
+                                                                    {% endif %}
+                                                                </span>
+                                                                <br>
+                                                            {% endfor %}
+                                                        {% else %}
+                                                            —
+                                                        {% endif %}
+                                                    </td>
+
+                                                    <td>
+                                                        {% if candidate.last_comment %}
+                                                            {{ candidate.last_comment.comment|linebreaksbr }}
+                                                            <br>
+                                                            <span class="small muted">
+                                                                {{ candidate.last_comment.created_at|date:"d.m.Y" }}
+                                                            </span>
+                                                        {% else %}
+                                                            —
+                                                        {% endif %}
+                                                    </td>
+
+                                                    <td>
+                                                        <form method="post">
+                                                            {% csrf_token %}
+                                                            <input type="hidden" name="action" value="add_candidate">
+                                                            <input type="hidden" name="specialty_id" value="{{ item.need.specialty.id }}">
+                                                            <input type="hidden" name="executor_id" value="{{ candidate.executor.id }}">
+
+                                                            <button type="submit" class="small-button">
+                                                                Добавить
+                                                            </button>
+                                                        </form>
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <p class="muted">
+                                    Подходящих активных исполнителей по этому разделу нет либо все уже добавлены в проект.
+                                </p>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
         </div>
     {% else %}
         <p class="muted">
-            Потребности по разделам пока не добавлены.
+            Потребности по разделам пока не добавлены. Добавьте разделы, по которым нужно подобрать исполнителей.
         </p>
     {% endif %}
 </div>
-
+{% comment %}
 <div class="card">
     <h2>Подбор исполнителей</h2>
 
@@ -681,4 +985,5 @@
         <p>По проекту пока нет строк подбора.</p>
     {% endif %}
 </div>
+{% endcomment %}
 {% endblock %}

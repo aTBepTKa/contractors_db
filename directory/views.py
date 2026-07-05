@@ -558,7 +558,7 @@ def project_detail(request, project_id):
                         status=new_status,
                     )
 
-                    ProjectSpecialtyNeed.objects.get_or_create(
+                    need, created = ProjectSpecialtyNeed.objects.get_or_create(
                         project=project,
                         specialty=specialty,
                         defaults={
@@ -567,7 +567,7 @@ def project_detail(request, project_id):
                     )
 
                     return redirect(
-                        f"/projects/{project.id}/?specialty={specialty.id}#candidate-selection"
+                        f"/projects/{project.id}/?specialty={specialty.id}#need-{need.id}"
                     )
                 except IntegrityError:
                     add_candidate_error = (
@@ -682,12 +682,8 @@ def project_detail(request, project_id):
     )
 
     selection_items = []
-    total_offer_amount = 0
 
     for selection in selections:
-        if selection.offer_amount:
-            total_offer_amount += selection.offer_amount
-
         negotiations = list(
             selection.negotiations.all().order_by(
                 "-event_date",
@@ -710,23 +706,45 @@ def project_detail(request, project_id):
             }
         )
         
-    needs = (
+        needs = (
         project.specialty_needs
         .select_related("specialty", "created_by")
         .order_by("specialty__code")
     )
 
-    need_items = []
-
     all_project_selections = list(
         project.selections
-        .select_related("specialty", "executor", "status")
+        .select_related("specialty", "executor", "executor__status", "status")
+        .prefetch_related("negotiations")
         .all()
     )
+
+    need_items = []
+    grouped_need_items = []
 
     project_min_total = 0
     project_max_total = 0
     project_sections_with_amount = 0
+
+    needs_closed_count = 0
+    needs_in_progress_count = 0
+    needs_empty_count = 0
+
+    selection_status_counters = {
+        "Новый": 0,
+        "Рассматривает": 0,
+        "Готов": 0,
+        "Отказ": 0,
+        "Другие": 0,
+    }
+
+    for selection in all_project_selections:
+        status_name = selection.status.name if selection.status else ""
+
+        if status_name in selection_status_counters:
+            selection_status_counters[status_name] += 1
+        else:
+            selection_status_counters["Другие"] += 1
 
     for need in needs:
         need_selections = [
@@ -757,18 +775,66 @@ def project_detail(request, project_id):
 
         need_status = get_need_status(need_selections)
 
-        need_items.append(
-            {
-                "need": need,
-                "selections": need_selections,
-                "selections_count": len(need_selections),
-                "ready_count": ready_count,
-                "min_offer_amount": format_money(min_offer_amount),
-                "max_offer_amount": format_money(max_offer_amount),
-                "status_label": need_status["label"],
-                "status_css_class": need_status["css_class"],
-            }
+        if need_status["label"] == "Закрыт":
+            needs_closed_count += 1
+        elif need_status["label"] == "В работе":
+            needs_in_progress_count += 1
+        else:
+            needs_empty_count += 1
+
+        selection_rows = []
+
+        for selection in sorted(
+            need_selections,
+            key=lambda item: (
+                item.status.name if item.status else "",
+                item.executor.last_name,
+                item.executor.first_name,
+            ),
+        ):
+            negotiations = list(
+                selection.negotiations.all().order_by(
+                    "-event_date",
+                    "-created_at",
+                )
+            )
+
+            last_negotiation = negotiations[0] if negotiations else None
+            old_negotiations = negotiations[1:] if len(negotiations) > 1 else []
+
+            selection_rows.append(
+                {
+                    "selection": selection,
+                    "offer_amount": format_money(selection.offer_amount),
+                    "last_negotiation": last_negotiation,
+                    "old_negotiations": old_negotiations,
+                    "status_css_class": get_selection_status_css_class(
+                        selection.status.name
+                    ),
+                }
+            )
+            
+        is_candidate_section_active = (
+            selected_specialty_id
+            and str(selected_specialty_id) == str(need.specialty_id)
         )
+
+        need_item = {
+            "need": need,
+            "selections": need_selections,
+            "selection_rows": selection_rows,
+            "selections_count": len(need_selections),
+            "ready_count": ready_count,
+            "min_offer_amount": format_money(min_offer_amount),
+            "max_offer_amount": format_money(max_offer_amount),
+            "status_label": need_status["label"],
+            "status_css_class": need_status["css_class"],
+            "is_candidate_section_active": is_candidate_section_active,
+            "candidate_items": candidate_items if is_candidate_section_active else [],
+        }
+
+        need_items.append(need_item)
+        grouped_need_items.append(need_item)
 
     used_need_specialty_ids = [
         item["need"].specialty_id
@@ -817,6 +883,19 @@ def project_detail(request, project_id):
         "selection_statuses": SelectionStatus.objects.filter(is_active=True).order_by("name"),
         "selection_specialty_id": selection_specialty_id,
         "selection_status_id": selection_status_id,
+        
+        "grouped_need_items": grouped_need_items,
+
+        "project_min_total": format_money(project_min_total),
+        "project_max_total": format_money(project_max_total),
+        "project_sections_with_amount": project_sections_with_amount,
+
+        "needs_count": len(need_items),
+        "closed_needs_count": needs_closed_count,
+        "needs_in_progress_count": needs_in_progress_count,
+        "needs_empty_count": needs_empty_count,
+
+        "selection_status_counters": selection_status_counters,
     }
 
     return render(request, "directory/project_detail.html", context)
