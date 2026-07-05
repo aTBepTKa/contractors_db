@@ -130,7 +130,13 @@ def executor_list(request):
 
         for selection in selections:
             if selection.project_id not in seen_project_ids:
-                last_projects.append(selection.project.name)
+                last_projects.append(
+                    {
+                        "project": selection.project.name,
+                        "specialty": selection.specialty.code,
+                        "amount": format_money(selection.offer_amount),
+                    }
+                )
                 seen_project_ids.add(selection.project_id)
 
             if len(last_projects) >= 3:

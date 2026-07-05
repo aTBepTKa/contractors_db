@@ -122,7 +122,6 @@
                         <th>Специальности</th>
                         <th>Телефон</th>
                         <th>Почта</th>
-                        <th>Мессенджер</th>
                         <th>Revit</th>
                         <th>Статус</th>
                         <th>Последние проекты</th>
@@ -150,7 +149,6 @@
                             <td>{{ item.specialties|default:"—" }}</td>
                             <td>{{ item.executor.phone|default:"—" }}</td>
                             <td>{{ item.executor.email|default:"—" }}</td>
-                            <td>{{ item.executor.messenger|default:"—" }}</td>
 
                             <td>
                                 {% if item.executor.works_in_revit %}
@@ -181,7 +179,16 @@
                             <td>
                                 {% if item.last_projects %}
                                     {% for project in item.last_projects %}
-                                        {{ project }}<br>
+                                        <strong>{{ project.project }}</strong><br>
+                                        <span class="small muted">
+                                            {{ project.specialty }}
+                                            {% if project.amount %}
+                                                / {{ project.amount }} руб.
+                                            {% else %}
+                                                / сумма не указана
+                                            {% endif %}
+                                        </span>
+                                        <br>
                                     {% endfor %}
                                 {% else %}
                                     —
