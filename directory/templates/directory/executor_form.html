@@ -85,10 +85,15 @@
         <h2>Специальности</h2>
         <div class="executor-form-wide">
             {{ form.specialties.label_tag }}
-            {{ form.specialties }}
+
+            <div class="specialty-checkbox-grid">
+                {{ form.specialties }}
+            </div>
+
             {{ form.specialties.errors }}
+
             <p class="small muted">
-                Можно выбрать несколько специальностей. Для выбора нескольких строк удерживайте Ctrl.
+                Отметьте все разделы, по которым работает исполнитель.
             </p>
         </div>
 

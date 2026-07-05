@@ -46,67 +46,12 @@ class ProjectSelectionForm(forms.ModelForm):
 
 from .models import EmploymentType, ExecutorStatus
 
-
 class ExecutorForm(forms.ModelForm):
     specialties = forms.ModelMultipleChoiceField(
         label="Специальности",
         queryset=Specialty.objects.none(),
         required=False,
-        widget=forms.SelectMultiple(attrs={"size": 8}),
-    )
-
-    class Meta:
-        model = Executor
-        fields = (
-            "last_name",
-            "first_name",
-            "middle_name",
-            "phone",
-            "email",
-            "messenger",
-            "employment_type",
-            "status",
-            "works_in_revit",
-            "revit_comment",
-            "general_comment",
-            "specialties",
-        )
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        self.fields["employment_type"].queryset = EmploymentType.objects.filter(
-            is_active=True
-        ).order_by("name")
-
-        self.fields["status"].queryset = ExecutorStatus.objects.filter(
-            is_active=True
-        ).order_by("name")
-
-        self.fields["specialties"].queryset = Specialty.objects.filter(
-            is_active=True
-        ).order_by("code")
-
-        self.fields["middle_name"].required = False
-        self.fields["phone"].required = False
-        self.fields["email"].required = False
-        self.fields["messenger"].required = False
-        self.fields["employment_type"].required = False
-        self.fields["revit_comment"].required = False
-        self.fields["general_comment"].required = False
-
-        self.fields["revit_comment"].widget = forms.Textarea(attrs={"rows": 3})
-        self.fields["general_comment"].widget = forms.Textarea(attrs={"rows": 4})
-
-        if self.instance and self.instance.pk:
-            self.fields["specialties"].initial = Specialty.objects.filter(
-                executor_specialties__executor=self.instance
-            ).order_by("code")
-    specialties = forms.ModelMultipleChoiceField(
-        label="Специальности",
-        queryset=Specialty.objects.none(),
-        required=False,
-        widget=forms.SelectMultiple(attrs={"size": 8}),
+        widget=forms.CheckboxSelectMultiple,
     )
 
     class Meta:

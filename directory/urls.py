@@ -12,8 +12,6 @@ urlpatterns = [
     path("executors/<int:executor_id>/", views.executor_detail, name="executor_detail"),
     path("executors/<int:executor_id>/edit/", views.executor_update, name="executor_update"),
     path("executors/<int:executor_id>/comments/add/", views.add_executor_comment, name="add_executor_comment"),
-    path("executors/<int:executor_id>/specialties/add/", views.add_executor_specialty, name="add_executor_specialty"),
-    path("executor-specialties/<int:executor_specialty_id>/delete/", views.delete_executor_specialty, name="delete_executor_specialty"),
 
     # Проекты
     path("projects/", views.project_list, name="project_list"),

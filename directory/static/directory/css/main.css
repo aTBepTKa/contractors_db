@@ -809,3 +809,53 @@ button:hover,
 .negotiation-add-no-date textarea {
     grid-column: auto;
 }
+
+.specialty-checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px 16px;
+    padding: 12px;
+    background: #f8fafc;
+    border: 1px solid #d9dee5;
+    border-radius: 6px;
+}
+
+.specialty-checkbox-grid ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: contents;
+}
+
+.specialty-checkbox-grid li {
+    margin: 0;
+    padding: 6px 8px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+}
+
+.specialty-checkbox-grid label {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    font-weight: 400;
+    margin: 0;
+    cursor: pointer;
+}
+
+.specialty-checkbox-grid input[type="checkbox"] {
+    margin-top: 2px;
+}
+
+@media (max-width: 1000px) {
+    .specialty-checkbox-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 700px) {
+    .specialty-checkbox-grid {
+        grid-template-columns: 1fr;
+    }
+}

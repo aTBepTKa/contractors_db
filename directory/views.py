@@ -672,6 +672,8 @@ def add_executor_comment(request, executor_id):
     return redirect("executor_detail", executor_id=executor.id)
 
 def update_executor_specialties(executor, specialties):
+    specialties = specialties or []
+
     ExecutorSpecialty.objects.filter(executor=executor).exclude(
         specialty__in=specialties
     ).delete()
@@ -742,8 +744,17 @@ def delete_executor_specialty(request, executor_specialty_id):
 @login_required
 def executor_update(request, executor_id):
     executor = get_object_or_404(
-        Executor.objects.select_related("status", "employment_type"),
+        Executor.objects
+        .select_related("status", "employment_type")
+        .prefetch_related("executor_specialties__specialty"),
         id=executor_id,
+    )
+
+    selected_specialty_ids = list(
+        executor.executor_specialties.values_list(
+            "specialty_id",
+            flat=True,
+        )
     )
 
     if request.method == "POST":
@@ -756,7 +767,12 @@ def executor_update(request, executor_id):
 
             return redirect("executor_detail", executor_id=executor.id)
     else:
-        form = ExecutorForm(instance=executor)
+        form = ExecutorForm(
+            instance=executor,
+            initial={
+                "specialties": selected_specialty_ids,
+            },
+        )
 
     context = {
         "form": form,
