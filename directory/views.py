@@ -706,10 +706,10 @@ def project_detail(request, project_id):
             }
         )
         
-        needs = (
-        project.specialty_needs
-        .select_related("specialty", "created_by")
-        .order_by("specialty__code")
+    needs = (
+    project.specialty_needs
+    .select_related("specialty", "created_by")
+    .order_by("specialty__code")
     )
 
     all_project_selections = list(
