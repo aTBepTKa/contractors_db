@@ -12,6 +12,7 @@ from .models import (
     ProjectSpecialtyNeed,
     SelectionNegotiation,
     SelectionStatus,
+    Software,
     Specialty,
 )
 
@@ -127,6 +128,13 @@ class SelectionStatusAdmin(admin.ModelAdmin):
     search_fields = ("name",)
 
 
+@admin.register(Software)
+class SoftwareAdmin(admin.ModelAdmin):
+    list_display = ("name", "is_active")
+    list_filter = ("is_active",)
+    search_fields = ("name",)
+
+
 @admin.register(Executor)
 class ExecutorAdmin(admin.ModelAdmin):
     list_display = (
@@ -135,7 +143,7 @@ class ExecutorAdmin(admin.ModelAdmin):
         "phone",
         "email",
         "messenger",
-        "works_in_revit",
+        "software_list",
         "status",
         "employment_type",
         "updated_at",
@@ -143,7 +151,7 @@ class ExecutorAdmin(admin.ModelAdmin):
     list_filter = (
         "status",
         "employment_type",
-        "works_in_revit",
+        "software",
         "executor_specialties__specialty",
     )
     search_fields = (
@@ -156,6 +164,7 @@ class ExecutorAdmin(admin.ModelAdmin):
         "general_comment",
     )
     readonly_fields = ("created_at", "updated_at")
+    filter_horizontal = ("software",)
     inlines = (
         ExecutorSpecialtyInline,
         ExecutorCommentInline,
@@ -189,11 +198,11 @@ class ExecutorAdmin(admin.ModelAdmin):
             },
         ),
         (
-            "Revit",
+            "ПО",
             {
                 "fields": (
-                    "works_in_revit",
-                    "revit_comment",
+                    "software",
+                    "software_comment",
                 )
             },
         ),
@@ -234,11 +243,16 @@ class ExecutorAdmin(admin.ModelAdmin):
         ]
         return ", ".join(specialties) if specialties else "—"
 
+    @admin.display(description="ПО")
+    def software_list(self, obj):
+        software = [item.name for item in obj.software.all()]
+        return ", ".join(software) if software else "—"
+
     def get_queryset(self, request):
         return (
             super()
             .get_queryset(request)
-            .prefetch_related("executor_specialties__specialty")
+            .prefetch_related("executor_specialties__specialty", "software")
         )
 
 

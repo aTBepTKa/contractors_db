@@ -9,6 +9,7 @@ from .models import (
     Project,
     ProjectSelection,
     SelectionStatus,
+    Software,
     Specialty,
 )
 
@@ -117,3 +118,68 @@ class ProjectSelectionAutosaveTests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.selection.refresh_from_db()
         self.assertEqual(self.selection.project, self.project)
+
+
+class ExecutorListTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username="list-tester",
+            password="test-password",
+        )
+        self.client.force_login(self.user)
+        self.status = ExecutorStatus.objects.create(name="Активный")
+        self.specialty_ar = Specialty.objects.create(code="АР", name="Архитектура")
+        self.specialty_kr = Specialty.objects.create(code="КР", name="Конструкции")
+        self.revit, _ = Software.objects.get_or_create(name="Revit")
+        self.autocad, _ = Software.objects.get_or_create(name="AutoCAD")
+
+        self.revit_executor = Executor.objects.create(
+            last_name="Архитектор",
+            first_name="Ревит",
+            status=self.status,
+        )
+        self.revit_executor.software.add(self.revit)
+        self.revit_executor.executor_specialties.create(specialty=self.specialty_ar)
+
+        self.autocad_executor = Executor.objects.create(
+            last_name="Конструктор",
+            first_name="Автокад",
+            status=self.status,
+        )
+        self.autocad_executor.software.add(self.autocad)
+        self.autocad_executor.executor_specialties.create(specialty=self.specialty_kr)
+
+    def test_filters_by_multiple_software_options(self):
+        response = self.client.get(
+            reverse("executor_list"),
+            {"software": [str(self.revit.id), str(self.autocad.id)]},
+        )
+
+        self.assertContains(response, "Архитектор Ревит")
+        self.assertContains(response, "Конструктор Автокад")
+
+    def test_filters_by_specialty_checkboxes(self):
+        response = self.client.get(
+            reverse("executor_list"),
+            {"specialty": [str(self.specialty_ar.id)]},
+        )
+
+        self.assertContains(response, "Архитектор Ревит")
+        self.assertNotContains(response, "Конструктор Автокад")
+
+    def test_list_uses_linked_name_contacts_and_resizable_columns(self):
+        response = self.client.get(reverse("executor_list"))
+
+        self.assertContains(response, "Контакты")
+        self.assertContains(response, "data-resizable-table")
+        self.assertContains(
+            response,
+            (
+                f'<a class="executor-name-link" '
+                f'href="/executors/{self.revit_executor.id}/">'
+                "Архитектор Ревит</a>"
+            ),
+            html=True,
+        )
+        self.assertNotContains(response, "Открыть карточку")
+        self.assertNotContains(response, "Открыть в админке")

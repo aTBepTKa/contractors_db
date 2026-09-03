@@ -42,6 +42,26 @@ class ExecutorStatus(models.Model):
         return self.name
 
 
+class Software(models.Model):
+    name = models.CharField(
+        "Наименование",
+        max_length=100,
+        unique=True,
+    )
+    is_active = models.BooleanField(
+        "Активно",
+        default=True,
+    )
+
+    class Meta:
+        verbose_name = "Программное обеспечение"
+        verbose_name_plural = "Программное обеспечение"
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
 class Executor(models.Model):
     last_name = models.CharField(
         "Фамилия",
@@ -79,14 +99,16 @@ class Executor(models.Model):
         blank=True,
         related_name="executors",
     )
-    works_in_revit = models.BooleanField(
-        "Работает в Revit",
-        default=False,
-    )
-    revit_comment = models.TextField(
-        "Комментарий по Revit",
+    software = models.ManyToManyField(
+        Software,
+        verbose_name="ПО",
         blank=True,
-        help_text="Версия Revit, уровень владения, особенности работы",
+        related_name="executors",
+    )
+    software_comment = models.TextField(
+        "Комментарий по ПО",
+        blank=True,
+        help_text="Версии программ, уровень владения и особенности работы",
     )
     status = models.ForeignKey(
         ExecutorStatus,

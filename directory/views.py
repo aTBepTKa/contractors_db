@@ -16,6 +16,7 @@ from .models import (
     ProjectSpecialtyNeed,
     SelectionNegotiation,
     SelectionStatus,
+    Software,
     Specialty,
 )
 
@@ -82,9 +83,9 @@ def executor_search(request):
 @login_required
 def executor_list(request):
     show_all = request.GET.get("show_all") == "1"
-    specialty_id = request.GET.get("specialty")
+    specialty_ids = request.GET.getlist("specialty")
+    software_ids = request.GET.getlist("software")
     status_id = request.GET.get("status")
-    revit_filter = request.GET.get("revit")
     search_query = request.GET.get("q", "").strip()
     sort = request.GET.get("sort", "name")
 
@@ -93,6 +94,7 @@ def executor_list(request):
         .select_related("status", "employment_type")
         .prefetch_related(
             "executor_specialties__specialty",
+            "software",
             "project_selections__project",
             "project_selections__specialty",
             "project_selections__status",
@@ -103,31 +105,19 @@ def executor_list(request):
     if not show_all:
         executors = executors.filter(status__name="Активный")
 
-    selected_specialty = None
+    if specialty_ids:
+        executors = executors.filter(
+            executor_specialties__specialty_id__in=specialty_ids
+        )
 
-    if specialty_id:
-        selected_specialty = Specialty.objects.filter(id=specialty_id).first()
-
-        if selected_specialty:
-            executors = executors.filter(
-                executor_specialties__specialty=selected_specialty
-            )
-
-    selected_status = None
-
-    if status_id:
-        selected_status = SelectionStatus.objects.filter(id=status_id).first()
+    if software_ids:
+        executors = executors.filter(software__id__in=software_ids)
 
     # Здесь нужен именно статус исполнителя, а не статус подбора.
     executor_statuses = ExecutorStatus.objects.filter(is_active=True).order_by("name")
 
     if status_id:
         executors = executors.filter(status_id=status_id)
-
-    if revit_filter == "yes":
-        executors = executors.filter(works_in_revit=True)
-    elif revit_filter == "no":
-        executors = executors.filter(works_in_revit=False)
 
     if search_query:
         executors = executors.filter(
@@ -139,13 +129,11 @@ def executor_list(request):
             | models.Q(messenger__icontains=search_query)
             | models.Q(general_comment__icontains=search_query)
             | models.Q(status_comment__icontains=search_query)
-            | models.Q(revit_comment__icontains=search_query)
+            | models.Q(software_comment__icontains=search_query)
         )
 
     if sort == "status":
         executors = executors.order_by("status__name", "last_name", "first_name")
-    elif sort == "revit":
-        executors = executors.order_by("-works_in_revit", "last_name", "first_name")
     else:
         executors = executors.order_by("last_name", "first_name", "middle_name")
 
@@ -158,6 +146,7 @@ def executor_list(request):
             item.specialty.code
             for item in executor.executor_specialties.all()
         )
+        software_text = ", ".join(item.name for item in executor.software.all())
 
         selections = sorted(
             executor.project_selections.all(),
@@ -175,6 +164,7 @@ def executor_list(request):
                         "project": selection.project.name,
                         "specialty": selection.specialty.code,
                         "amount": format_money(selection.offer_amount),
+                        "status": selection.status.name,
                     }
                 )
                 seen_project_ids.add(selection.project_id)
@@ -188,6 +178,7 @@ def executor_list(request):
             {
                 "executor": executor,
                 "specialties": specialties_text,
+                "software": software_text,
                 "last_projects": last_projects,
                 "last_comment": last_comment,
             }
@@ -196,111 +187,20 @@ def executor_list(request):
     context = {
         "items": result_items,
         "specialties": Specialty.objects.filter(is_active=True).order_by("code"),
+        "software_options": Software.objects.filter(is_active=True).order_by("name"),
         "executor_statuses": executor_statuses,
-        "selected_specialty_id": specialty_id,
-        "selected_specialty": selected_specialty,
+        "selected_specialty_ids": specialty_ids,
+        "selected_software_ids": software_ids,
         "selected_status_id": status_id,
         "show_all": show_all,
         "search_query": search_query,
-        "revit_filter": revit_filter,
         "sort": sort,
         "total_executors_count": Executor.objects.count(),
         "active_executors_count": Executor.objects.filter(status__name="Активный").count(),
         "inactive_executors_count": Executor.objects.exclude(status__name="Активный").count(),
-        "revit_executors_count": Executor.objects.filter(works_in_revit=True).count(),
-    }
-
-    return render(request, "directory/executor_list.html", context)
-    show_all = request.GET.get("show_all") == "1"
-    specialty_id = request.GET.get("specialty")
-    search_query = request.GET.get("q", "").strip()
-
-    executors = (
-        Executor.objects
-        .select_related("status", "employment_type")
-        .prefetch_related(
-            "executor_specialties__specialty",
-            "project_selections__project",
-            "project_selections__specialty",
-            "project_selections__status",
-            "comments",
-        )
-        .order_by("last_name", "first_name", "middle_name")
-    )
-
-    if not show_all:
-        executors = executors.filter(status__name="Активный")
-
-    selected_specialty = None
-
-    if specialty_id:
-        selected_specialty = Specialty.objects.filter(id=specialty_id).first()
-
-        if selected_specialty:
-            executors = executors.filter(
-                executor_specialties__specialty=selected_specialty
-            )
-
-    if search_query:
-        executors = executors.filter(
-            models.Q(last_name__icontains=search_query)
-            | models.Q(first_name__icontains=search_query)
-            | models.Q(middle_name__icontains=search_query)
-            | models.Q(phone__icontains=search_query)
-            | models.Q(email__icontains=search_query)
-            | models.Q(messenger__icontains=search_query)
-            | models.Q(general_comment__icontains=search_query)
-        )
-
-    executors = executors.distinct()
-
-    result_items = []
-
-    for executor in executors:
-        specialties_text = ", ".join(
-            item.specialty.code
-            for item in executor.executor_specialties.all()
-        )
-
-        selections = sorted(
-            executor.project_selections.all(),
-            key=lambda item: item.updated_at,
-            reverse=True,
-        )
-
-        last_projects = []
-        seen_project_ids = set()
-
-        for selection in selections:
-            if selection.project_id not in seen_project_ids:
-                last_projects.append(selection.project.name)
-                seen_project_ids.add(selection.project_id)
-
-            if len(last_projects) >= 3:
-                break
-
-        last_comment = executor.comments.all().order_by("-created_at").first()
-
-        result_items.append(
-            {
-                "executor": executor,
-                "specialties": specialties_text,
-                "last_projects": last_projects,
-                "last_comment": last_comment,
-            }
-        )
-
-    context = {
-        "items": result_items,
-        "specialties": Specialty.objects.filter(is_active=True).order_by("code"),
-        "selected_specialty_id": specialty_id,
-        "selected_specialty": selected_specialty,
-        "show_all": show_all,
-        "search_query": search_query,
-        "total_executors_count": Executor.objects.count(),
-        "active_executors_count": Executor.objects.filter(status__name="Активный").count(),
-        "inactive_executors_count": Executor.objects.exclude(status__name="Активный").count(),
-        "revit_executors_count": Executor.objects.filter(works_in_revit=True).count(),
+        "software_executors_count": Executor.objects.filter(
+            software__isnull=False
+        ).distinct().count(),
     }
 
     return render(request, "directory/executor_list.html", context)
@@ -312,6 +212,7 @@ def executor_detail(request, executor_id):
         .select_related("status", "employment_type")
         .prefetch_related(
             "executor_specialties__specialty",
+            "software",
             "comments__project",
             "comments__user",
             "project_selections__project",
@@ -617,6 +518,7 @@ def project_detail(request, project_id):
                 .select_related("status", "employment_type")
                 .prefetch_related(
                     "executor_specialties__specialty",
+                    "software",
                     "project_selections__project",
                     "project_selections__specialty",
                     "project_selections__status",

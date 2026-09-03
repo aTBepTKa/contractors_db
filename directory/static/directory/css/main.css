@@ -1438,3 +1438,191 @@ button:hover,
     background: #ecfdf3;
     color: #166534;
 }
+
+/* Список исполнителей: автоматические фильтры и изменяемые столбцы */
+.executor-filter-main {
+    display: grid;
+    grid-template-columns: minmax(280px, 1.6fr) minmax(170px, 0.7fr) minmax(170px, 0.7fr) auto;
+    gap: 12px;
+    align-items: end;
+}
+
+.executor-filter-main label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 700;
+}
+
+.executor-filter-main input[type="text"],
+.executor-filter-main select {
+    width: 100%;
+    min-height: 40px;
+    box-sizing: border-box;
+}
+
+.executor-filter-options {
+    display: grid;
+    grid-template-columns: minmax(0, 3fr) minmax(180px, 1fr);
+    gap: 14px;
+    margin-top: 16px;
+}
+
+.filter-checkbox-group {
+    min-width: 0;
+    margin: 0;
+    padding: 10px 12px 12px;
+    border: 1px solid #d9dee5;
+    border-radius: 8px;
+}
+
+.filter-checkbox-group legend {
+    padding: 0 5px;
+    font-weight: 700;
+}
+
+.filter-checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px 12px;
+}
+
+.filter-specialty-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.filter-checkbox-grid label {
+    display: flex;
+    gap: 7px;
+    align-items: flex-start;
+    margin: 0;
+    font-size: 12px;
+    font-weight: 400;
+    cursor: pointer;
+}
+
+.filter-checkbox-grid input[type="checkbox"] {
+    flex: 0 0 auto;
+    margin-top: 2px;
+}
+
+.filter-autosubmit-note {
+    margin-top: 9px;
+    color: #94a3b8;
+    font-size: 11px;
+}
+
+.software-checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px 16px;
+    padding: 12px;
+    background: #f8fafc;
+    border: 1px solid #d9dee5;
+    border-radius: 6px;
+}
+
+.software-checkbox-grid ul {
+    display: contents;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.software-checkbox-grid li {
+    margin: 0;
+    padding: 6px 8px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+}
+
+.software-checkbox-grid label {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    margin: 0;
+    font-weight: 400;
+    cursor: pointer;
+}
+
+.executor-table-wrap {
+    overflow-x: auto;
+}
+
+.executor-table {
+    width: 100%;
+    min-width: 1070px;
+    table-layout: fixed;
+}
+
+.executor-table th {
+    position: relative;
+}
+
+.executor-table th,
+.executor-table td {
+    overflow-wrap: anywhere;
+}
+
+.column-resizer {
+    position: absolute;
+    z-index: 2;
+    top: 0;
+    right: -4px;
+    width: 8px;
+    height: 100%;
+    cursor: col-resize;
+    touch-action: none;
+}
+
+.column-resizer::after {
+    content: "";
+    position: absolute;
+    top: 20%;
+    bottom: 20%;
+    left: 3px;
+    width: 1px;
+    background: #cbd5e1;
+}
+
+.column-resizer:hover::after,
+.is-resizing-column .column-resizer::after {
+    width: 2px;
+    background: #2563eb;
+}
+
+.is-resizing-column {
+    cursor: col-resize;
+    user-select: none;
+}
+
+.executor-name-link {
+    color: #172033;
+    font-weight: 700;
+}
+
+.executor-contacts {
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+@media (max-width: 1100px) {
+    .executor-filter-main,
+    .executor-filter-options {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .filter-specialty-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 700px) {
+    .executor-filter-main,
+    .executor-filter-options,
+    .filter-checkbox-grid,
+    .filter-specialty-grid,
+    .software-checkbox-grid {
+        grid-template-columns: 1fr;
+    }
+}

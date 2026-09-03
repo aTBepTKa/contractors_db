@@ -5,205 +5,138 @@
 {% block content %}
 <div class="card">
     <h1>Исполнители</h1>
-    <p class="muted">
-        Общий список исполнителей с фильтрацией по специальности, статусу и поиском по контактам.
-    </p>
-    <p>
-    <a class="button" href="/executors/add/">Добавить исполнителя</a>
-    </p>
+    <p class="muted">Общий список исполнителей с автоматической фильтрацией по специальности, ПО, статусу и контактам.</p>
+    <p><a class="button" href="/executors/add/">Добавить исполнителя</a></p>
 </div>
 
 <div class="card">
     <div class="stat-grid">
-        <div class="stat">
-            <div class="stat-value">{{ total_executors_count }}</div>
-            <div class="stat-label">Всего исполнителей</div>
-        </div>
-
-        <div class="stat">
-            <div class="stat-value">{{ active_executors_count }}</div>
-            <div class="stat-label">Активных</div>
-        </div>
-
-        <div class="stat">
-            <div class="stat-value">{{ inactive_executors_count }}</div>
-            <div class="stat-label">Неактивных / ограниченных</div>
-        </div>
-
-        <div class="stat">
-            <div class="stat-value">{{ revit_executors_count }}</div>
-            <div class="stat-label">Работают в Revit</div>
-        </div>
+        <div class="stat"><div class="stat-value">{{ total_executors_count }}</div><div class="stat-label">Всего исполнителей</div></div>
+        <div class="stat"><div class="stat-value">{{ active_executors_count }}</div><div class="stat-label">Активных</div></div>
+        <div class="stat"><div class="stat-value">{{ inactive_executors_count }}</div><div class="stat-label">Неактивных / ограниченных</div></div>
+        <div class="stat"><div class="stat-value">{{ software_executors_count }}</div><div class="stat-label">С указанным ПО</div></div>
     </div>
 </div>
 
 <div class="form-panel">
-    <form method="get">
-        <div class="executor-filter-grid">
+    <form method="get" id="executor-filter-form">
+        <div class="executor-filter-main">
             <div>
                 <label for="q">Поиск</label>
-                <input
-                    type="text"
-                    id="q"
-                    name="q"
-                    value="{{ search_query }}"
-                    placeholder="ФИО, телефон, почта, комментарий"
-                >
+                <input type="text" id="q" name="q" value="{{ search_query }}" placeholder="ФИО, контакты или комментарий" autocomplete="off">
             </div>
-
-            <div>
-                <label for="specialty">Специальность</label>
-                <select name="specialty" id="specialty">
-                    <option value="">Все специальности</option>
-                    {% for specialty in specialties %}
-                        <option value="{{ specialty.id }}"
-                            {% if selected_specialty_id == specialty.id|stringformat:"s" %}selected{% endif %}>
-                            {{ specialty.code }} — {{ specialty.name }}
-                        </option>
-                    {% endfor %}
-                </select>
-            </div>
-
             <div>
                 <label for="status">Статус</label>
                 <select name="status" id="status">
                     <option value="">Все статусы</option>
                     {% for status in executor_statuses %}
-                        <option value="{{ status.id }}"
-                            {% if selected_status_id == status.id|stringformat:"s" %}selected{% endif %}>
-                            {{ status.name }}
-                        </option>
+                        <option value="{{ status.id }}" {% if selected_status_id == status.id|stringformat:"s" %}selected{% endif %}>{{ status.name }}</option>
                     {% endfor %}
                 </select>
             </div>
-
-            <div>
-                <label for="revit">Revit</label>
-                <select name="revit" id="revit">
-                    <option value="">Все</option>
-                    <option value="yes" {% if revit_filter == "yes" %}selected{% endif %}>Да</option>
-                    <option value="no" {% if revit_filter == "no" %}selected{% endif %}>Нет</option>
-                </select>
-            </div>
-
             <div>
                 <label for="sort">Сортировка</label>
                 <select name="sort" id="sort">
                     <option value="name" {% if sort == "name" %}selected{% endif %}>По ФИО</option>
                     <option value="status" {% if sort == "status" %}selected{% endif %}>По статусу</option>
-                    <option value="revit" {% if sort == "revit" %}selected{% endif %}>По Revit</option>
                 </select>
             </div>
-
             <div class="executor-filter-checkbox">
-                <label>
-                    <input type="checkbox" name="show_all" value="1" {% if show_all %}checked{% endif %}>
-                    Показать всех
-                </label>
-            </div>
-
-            <div class="executor-filter-buttons">
-                <button type="submit">Применить</button>
-                <a class="button" href="/executors/">Сбросить</a>
+                <label><input type="checkbox" name="show_all" value="1" {% if show_all %}checked{% endif %}> Показать всех</label>
             </div>
         </div>
+
+        <div class="executor-filter-options">
+            <fieldset class="filter-checkbox-group">
+                <legend>Специальности</legend>
+                <div class="filter-checkbox-grid filter-specialty-grid">
+                    {% for specialty in specialties %}
+                        <label>
+                            <input type="checkbox" name="specialty" value="{{ specialty.id }}" {% if specialty.id|stringformat:"s" in selected_specialty_ids %}checked{% endif %}>
+                            <span><strong>{{ specialty.code }}</strong> — {{ specialty.name }}</span>
+                        </label>
+                    {% endfor %}
+                </div>
+            </fieldset>
+
+            <fieldset class="filter-checkbox-group filter-software-group">
+                <legend>ПО</legend>
+                <div class="filter-checkbox-grid">
+                    {% for program in software_options %}
+                        <label>
+                            <input type="checkbox" name="software" value="{{ program.id }}" {% if program.id|stringformat:"s" in selected_software_ids %}checked{% endif %}>
+                            <span>{{ program.name }}</span>
+                        </label>
+                    {% endfor %}
+                </div>
+            </fieldset>
+        </div>
+        <div class="filter-autosubmit-note">Фильтры применяются автоматически</div>
     </form>
 </div>
 
 <div class="card">
     <h2>Найдено: {{ items|length }}</h2>
-
     {% if items %}
-        <div class="table-wrap">
-            <table>
+        <p class="small muted">Потяните границу заголовка, чтобы изменить ширину столбца.</p>
+        <div class="table-wrap executor-table-wrap">
+            <table class="executor-table" data-resizable-table>
+                <colgroup>
+                    <col data-column-key="name" style="width: 190px;">
+                    <col data-column-key="specialties" style="width: 150px;">
+                    <col data-column-key="contacts" style="width: 180px;">
+                    <col data-column-key="software" style="width: 120px;">
+                    <col data-column-key="status" style="width: 140px;">
+                    <col data-column-key="projects" style="width: 260px;">
+                    <col data-column-key="comment" style="width: 230px;">
+                </colgroup>
                 <thead>
                     <tr>
-                        <th>ФИО</th>
-                        <th>Специальности</th>
-                        <th>Телефон</th>
-                        <th>Почта</th>
-                        <th>Revit</th>
-                        <th>Статус</th>
-                        <th>Последние проекты</th>
-                        <th>Последний комментарий</th>
+                        <th>ФИО<span class="column-resizer" aria-hidden="true"></span></th>
+                        <th>Специальности<span class="column-resizer" aria-hidden="true"></span></th>
+                        <th>Контакты<span class="column-resizer" aria-hidden="true"></span></th>
+                        <th>ПО<span class="column-resizer" aria-hidden="true"></span></th>
+                        <th>Статус<span class="column-resizer" aria-hidden="true"></span></th>
+                        <th>Последние проекты<span class="column-resizer" aria-hidden="true"></span></th>
+                        <th>Последний комментарий<span class="column-resizer" aria-hidden="true"></span></th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for item in items %}
                         <tr class="{% if item.executor.status.name != 'Активный' %}inactive{% endif %}">
                             <td>
-                                <strong>{{ item.executor }}</strong><br>
-                                <a class="small" href="/executors/{{ item.executor.id }}/">
-                                    Открыть карточку
-                                </a>
-                                <br>
-                                <a class="small" href="/executors/{{ item.executor.id }}/edit/">
-                                    Редактировать
-                                </a>
-                                <br>
-                                <a class="small" href="/admin/directory/executor/{{ item.executor.id }}/change/">
-                                    Открыть в админке
-                                </a>
+                                <a class="executor-name-link" href="/executors/{{ item.executor.id }}/">{{ item.executor }}</a><br>
+                                <a class="small" href="/executors/{{ item.executor.id }}/edit/">Редактировать</a>
                             </td>
-
                             <td>{{ item.specialties|default:"—" }}</td>
-                            <td>{{ item.executor.phone|default:"—" }}</td>
-                            <td>{{ item.executor.email|default:"—" }}</td>
-
-                            <td>
-                                {% if item.executor.works_in_revit %}
-                                    Да
-                                {% else %}
-                                    Нет
-                                {% endif %}
-
-                                {% if item.executor.revit_comment %}
-                                    <br>
-                                    <span class="small muted">
-                                        {{ item.executor.revit_comment }}
-                                    </span>
-                                {% endif %}
+                            <td class="executor-contacts">
+                                {{ item.executor.phone|default:"—" }}<br>
+                                {{ item.executor.email|default:"—" }}
+                                {% if item.executor.messenger %}<br>{{ item.executor.messenger }}{% endif %}
                             </td>
-
+                            <td>
+                                {{ item.software|default:"—" }}
+                                {% if item.executor.software_comment %}<br><span class="small muted">{{ item.executor.software_comment }}</span>{% endif %}
+                            </td>
                             <td>
                                 {{ item.executor.status }}
-
-                                {% if item.executor.status_comment %}
-                                    <br>
-                                    <span class="small muted">
-                                        {{ item.executor.status_comment }}
-                                    </span>
-                                {% endif %}
+                                {% if item.executor.status_comment %}<br><span class="small muted">{{ item.executor.status_comment }}</span>{% endif %}
                             </td>
-
                             <td>
                                 {% if item.last_projects %}
                                     {% for project in item.last_projects %}
                                         <strong>{{ project.project }}</strong><br>
                                         <span class="small muted">
-                                            {{ project.specialty }}
-                                            {% if project.amount %}
-                                                / {{ project.amount }} руб.
-                                            {% else %}
-                                                / сумма не указана
-                                            {% endif %}
-                                        </span>
-                                        <br>
+                                            {{ project.specialty }} / {{ project.status }}
+                                            {% if project.amount %} / {{ project.amount }} руб.{% else %} / сумма не указана{% endif %}
+                                        </span>{% if not forloop.last %}<br>{% endif %}
                                     {% endfor %}
-                                {% else %}
-                                    —
-                                {% endif %}
+                                {% else %}—{% endif %}
                             </td>
-
                             <td>
                                 {% if item.last_comment %}
-                                    {{ item.last_comment.comment }}<br>
-                                    <span class="small muted">
-                                        {{ item.last_comment.created_at|date:"d.m.Y H:i" }}
-                                    </span>
-                                {% else %}
-                                    —
-                                {% endif %}
+                                    {{ item.last_comment.comment }}<br><span class="small muted">{{ item.last_comment.created_at|date:"d.m.Y H:i" }}</span>
+                                {% else %}—{% endif %}
                             </td>
                         </tr>
                     {% endfor %}
@@ -214,4 +147,78 @@
         <p>Исполнители не найдены.</p>
     {% endif %}
 </div>
+
+<script>
+    (() => {
+        const filterForm = document.querySelector("#executor-filter-form");
+        const searchInput = filterForm.querySelector("#q");
+        const filterScrollKey = "executor-filter-scroll";
+        let searchTimer;
+
+        const savedScrollPosition = sessionStorage.getItem(filterScrollKey);
+        if (savedScrollPosition !== null) {
+            sessionStorage.removeItem(filterScrollKey);
+            window.requestAnimationFrame(() => {
+                window.scrollTo(0, Number(savedScrollPosition));
+            });
+        }
+
+        const submitFilters = () => {
+            sessionStorage.setItem(filterScrollKey, String(window.scrollY));
+            filterForm.requestSubmit();
+        };
+
+        filterForm.querySelectorAll("select, input[type='checkbox']").forEach((control) => {
+            control.addEventListener("change", submitFilters);
+        });
+        searchInput.addEventListener("input", () => {
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(submitFilters, 600);
+        });
+
+        const table = document.querySelector("[data-resizable-table]");
+        if (!table) return;
+
+        const storageKey = "executor-table-column-widths";
+        const columns = Array.from(table.querySelectorAll("col[data-column-key]"));
+        const savedWidths = JSON.parse(localStorage.getItem(storageKey) || "{}");
+
+        columns.forEach((column) => {
+            const savedWidth = savedWidths[column.dataset.columnKey];
+            if (savedWidth) column.style.width = `${savedWidth}px`;
+        });
+
+        table.querySelectorAll("th").forEach((header, index) => {
+            const handle = header.querySelector(".column-resizer");
+            const column = columns[index];
+            let startX;
+            let startWidth;
+
+            handle.addEventListener("pointerdown", (event) => {
+                event.preventDefault();
+                startX = event.clientX;
+                startWidth = column.getBoundingClientRect().width;
+                document.body.classList.add("is-resizing-column");
+
+                const resize = (moveEvent) => {
+                    column.style.width = `${Math.max(80, startWidth + moveEvent.clientX - startX)}px`;
+                };
+                const stop = () => {
+                    document.removeEventListener("pointermove", resize);
+                    document.removeEventListener("pointerup", stop);
+                    document.body.classList.remove("is-resizing-column");
+
+                    const widths = {};
+                    columns.forEach((item) => {
+                        widths[item.dataset.columnKey] = Math.round(item.getBoundingClientRect().width);
+                    });
+                    localStorage.setItem(storageKey, JSON.stringify(widths));
+                };
+
+                document.addEventListener("pointermove", resize);
+                document.addEventListener("pointerup", stop);
+            });
+        });
+    })();
+</script>
 {% endblock %}

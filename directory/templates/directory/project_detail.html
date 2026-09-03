@@ -438,7 +438,7 @@
                                             <tr>
                                                 <th>Исполнитель</th>
                                                 <th>Контакты</th>
-                                                <th>Revit</th>
+                                                <th>ПО</th>
                                                 <th>Статус</th>
                                                 <th>Последние проекты</th>
                                                 <th>Последний комментарий</th>
@@ -463,16 +463,16 @@
                                                     </td>
 
                                                     <td>
-                                                        {% if candidate.executor.works_in_revit %}
-                                                            Да
-                                                        {% else %}
-                                                            Нет
-                                                        {% endif %}
+                                                        {% for program in candidate.executor.software.all %}
+                                                            {{ program.name }}{% if not forloop.last %}, {% endif %}
+                                                        {% empty %}
+                                                            —
+                                                        {% endfor %}
 
-                                                        {% if candidate.executor.revit_comment %}
+                                                        {% if candidate.executor.software_comment %}
                                                             <br>
                                                             <span class="small muted">
-                                                                {{ candidate.executor.revit_comment }}
+                                                                {{ candidate.executor.software_comment }}
                                                             </span>
                                                         {% endif %}
                                                     </td>

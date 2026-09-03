@@ -9,6 +9,7 @@ from .models import (
     Project,
     ProjectSelection,
     SelectionStatus,
+    Software,
     Specialty,
 )
 
@@ -63,6 +64,12 @@ class ExecutorForm(forms.ModelForm):
         required=False,
         widget=forms.CheckboxSelectMultiple,
     )
+    software = forms.ModelMultipleChoiceField(
+        label="ПО",
+        queryset=Software.objects.none(),
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
+    )
 
     class Meta:
         model = Executor
@@ -75,8 +82,8 @@ class ExecutorForm(forms.ModelForm):
             "messenger",
             "employment_type",
             "status",
-            "works_in_revit",
-            "revit_comment",
+            "software",
+            "software_comment",
             "general_comment",
             "specialties",
         )
@@ -96,15 +103,19 @@ class ExecutorForm(forms.ModelForm):
             is_active=True
         ).order_by("code")
 
+        self.fields["software"].queryset = Software.objects.filter(
+            is_active=True
+        ).order_by("name")
+
         self.fields["middle_name"].required = False
         self.fields["phone"].required = False
         self.fields["email"].required = False
         self.fields["messenger"].required = False
         self.fields["employment_type"].required = False
-        self.fields["revit_comment"].required = False
+        self.fields["software_comment"].required = False
         self.fields["general_comment"].required = False
 
-        self.fields["revit_comment"].widget = forms.Textarea(attrs={"rows": 3})
+        self.fields["software_comment"].widget = forms.Textarea(attrs={"rows": 3})
         self.fields["general_comment"].widget = forms.Textarea(attrs={"rows": 4})
 
 class ProjectForm(forms.ModelForm):

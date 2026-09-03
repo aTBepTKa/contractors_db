@@ -7,7 +7,7 @@
     <h1>{{ executor }}</h1>
 
     <p class="muted">
-        Карточка исполнителя: контакты, специальности, статус, Revit, комментарии и история участия в проектах.
+        Карточка исполнителя: контакты, специальности, статус, ПО, комментарии и история участия в проектах.
     </p>
 
     <p>
@@ -40,21 +40,20 @@
     </div>
 
     <div class="card">
-        <h2>Revit</h2>
+        <h2>ПО</h2>
 
-        <p>
-            <strong>Работает в Revit:</strong>
-            {% if executor.works_in_revit %}
-                Да
-            {% else %}
-                Нет
-            {% endif %}
-        </p>
-
-        {% if executor.revit_comment %}
-            <p>{{ executor.revit_comment }}</p>
+        {% if executor.software.all %}
+            <p>
+                {% for program in executor.software.all %}
+                    <span class="badge">{{ program.name }}</span>
+                {% endfor %}
+            </p>
         {% else %}
-            <p class="muted">Комментарий по Revit не заполнен.</p>
+            <p class="muted">ПО не указано.</p>
+        {% endif %}
+
+        {% if executor.software_comment %}
+            <p>{{ executor.software_comment }}</p>
         {% endif %}
     </div>
 </div>

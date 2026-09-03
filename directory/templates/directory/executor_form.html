@@ -7,7 +7,7 @@
     <h1>{{ page_title }}</h1>
 
     <p class="muted">
-        Основная карточка исполнителя: ФИО, контакты, статус, Revit, специальности и комментарии.
+        Основная карточка исполнителя: ФИО, контакты, статус, ПО, специальности и комментарии.
     </p>
 
     <p>
@@ -97,19 +97,25 @@
             </p>
         </div>
 
-        <h2>Revit</h2>
-        <div class="executor-form-grid executor-form-grid-2">
-            <div class="checkbox-field">
-                {{ form.works_in_revit }}
-                {{ form.works_in_revit.label_tag }}
-                {{ form.works_in_revit.errors }}
+        <h2>ПО</h2>
+        <div class="executor-form-wide">
+            {{ form.software.label_tag }}
+
+            <div class="software-checkbox-grid">
+                {{ form.software }}
             </div>
 
-            <div>
-                {{ form.revit_comment.label_tag }}
-                {{ form.revit_comment }}
-                {{ form.revit_comment.errors }}
-            </div>
+            {{ form.software.errors }}
+
+            <p class="small muted">
+                Отметьте программы, которыми пользуется исполнитель. Поле можно оставить пустым.
+            </p>
+        </div>
+
+        <div class="executor-form-wide">
+            {{ form.software_comment.label_tag }}
+            {{ form.software_comment }}
+            {{ form.software_comment.errors }}
         </div>
 
         <h2>Общий комментарий</h2>
