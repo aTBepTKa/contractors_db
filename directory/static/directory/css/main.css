@@ -388,14 +388,21 @@ button:hover,
     max-width: 100%;
     font-size: 13px;
     box-sizing: border-box;
+    color: #172033;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .compact-select {
-    padding: 5px 6px;
+    min-height: 38px;
+    padding: 7px 9px;
 }
 
 .compact-input {
-    padding: 5px 6px;
+    min-height: 38px;
+    padding: 7px 9px;
 }
 
 .amount-input {
@@ -403,10 +410,24 @@ button:hover,
 }
 
 .compact-textarea {
-    min-height: 38px;
-    max-height: 70px;
+    min-height: 64px;
+    max-height: 140px;
     resize: vertical;
-    padding: 5px 6px;
+    padding: 8px 9px;
+    font: inherit;
+}
+
+.compact-select:focus,
+.compact-input:focus,
+.compact-textarea:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.autosave-control.autosave-error {
+    border-color: #dc2626;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
 }
 
 /* Кнопка сохранения */
@@ -1169,6 +1190,32 @@ button:hover,
 .work-actions {
     display: grid;
     gap: 6px;
+}
+
+.autosave-status {
+    min-height: 30px;
+    padding: 6px 4px;
+    border-radius: 6px;
+    color: #64748b;
+    font-size: 12px;
+    line-height: 1.25;
+    text-align: center;
+}
+
+.autosave-status-pending,
+.autosave-status-saving {
+    color: #92400e;
+    background: #fffbeb;
+}
+
+.autosave-status-saved {
+    color: #166534;
+    background: #f0fdf4;
+}
+
+.autosave-status-error {
+    color: #991b1b;
+    background: #fef2f2;
 }
 
 .work-actions form {

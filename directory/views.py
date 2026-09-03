@@ -912,6 +912,86 @@ def update_project_selection(request, selection_id):
     if request.method != "POST":
         return redirect(f"/projects/{project_id}/#selection-{selection.id}")
 
+    if request.POST.get("autosave") == "1":
+        field = request.POST.get("field")
+        value = request.POST.get("value", "")
+
+        if field == "status_id":
+            status = SelectionStatus.objects.filter(
+                id=value,
+                is_active=True,
+            ).first()
+
+            if not status:
+                return JsonResponse(
+                    {"saved": False, "error": "Выбран недоступный статус."},
+                    status=400,
+                )
+
+            selection.status = status
+            selection.save(update_fields=["status", "updated_at"])
+
+            return JsonResponse(
+                {
+                    "saved": True,
+                    "field": field,
+                    "value": str(status.id),
+                    "status_css_class": get_selection_status_css_class(status.name),
+                }
+            )
+
+        if field == "offer_amount":
+            normalized_amount = value.replace(" ", "").replace("\u00a0", "")
+
+            if normalized_amount:
+                if not normalized_amount.isdecimal():
+                    return JsonResponse(
+                        {"saved": False, "error": "КП должно быть целым числом."},
+                        status=400,
+                    )
+
+                amount = int(normalized_amount)
+                if amount > 2_147_483_647:
+                    return JsonResponse(
+                        {"saved": False, "error": "Указана слишком большая сумма КП."},
+                        status=400,
+                    )
+                selection.offer_amount = amount
+            else:
+                selection.offer_amount = None
+
+            selection.save(update_fields=["offer_amount", "updated_at"])
+
+            return JsonResponse(
+                {
+                    "saved": True,
+                    "field": field,
+                    "value": (
+                        ""
+                        if selection.offer_amount is None
+                        else str(selection.offer_amount)
+                    ),
+                    "display_value": format_money(selection.offer_amount) or "",
+                }
+            )
+
+        if field == "comment":
+            selection.comment = value.strip()
+            selection.save(update_fields=["comment", "updated_at"])
+
+            return JsonResponse(
+                {
+                    "saved": True,
+                    "field": field,
+                    "value": selection.comment,
+                }
+            )
+
+        return JsonResponse(
+            {"saved": False, "error": "Это поле нельзя сохранить автоматически."},
+            status=400,
+        )
+
     status_id = request.POST.get("status_id")
     offer_amount_raw = request.POST.get("offer_amount", "").strip()
     comment = request.POST.get("comment", "").strip()

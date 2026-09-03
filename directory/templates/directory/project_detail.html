@@ -223,17 +223,10 @@
                     {% if item.selection_rows %}
                         <div class="work-selection-list">
                             {% for row in item.selection_rows %}
-                                <form
-                                    method="post"
-                                    action="/selections/{{ row.selection.id }}/update/"
-                                    id="selection-update-{{ row.selection.id }}"
-                                >
-                                    {% csrf_token %}
-                                </form>
-
                                 <div
                                     class="work-selection-row {% if row.selection.executor.status.name != 'Активный' %}inactive{% endif %}"
                                     id="selection-{{ row.selection.id }}"
+                                    data-autosave-url="/selections/{{ row.selection.id }}/update/"
                                 >
                                     <div class="work-cell work-executor">
                                         <strong>{{ row.selection.executor }}</strong><br>
@@ -254,8 +247,8 @@
                                         <div class="selection-status-wrap {{ row.status_css_class }}">
                                             <select
                                                 name="status_id"
-                                                class="compact-select"
-                                                form="selection-update-{{ row.selection.id }}"
+                                                class="compact-select autosave-control"
+                                                data-autosave-field="status_id"
                                             >
                                                 {% for status in selection_statuses %}
                                                     <option value="{{ status.id }}" {% if row.selection.status_id == status.id %}selected{% endif %}>
@@ -272,9 +265,11 @@
                                         <input
                                             type="text"
                                             name="offer_amount"
-                                            value="{{ row.offer_amount }}"
-                                            class="compact-input"
-                                            form="selection-update-{{ row.selection.id }}"
+                                            value="{{ row.offer_amount|default_if_none:'' }}"
+                                            inputmode="numeric"
+                                            autocomplete="off"
+                                            class="compact-input amount-input autosave-control"
+                                            data-autosave-field="offer_amount"
                                         >
                                     </div>
 
@@ -283,8 +278,8 @@
 
                                         <textarea
                                             name="comment"
-                                            class="compact-textarea"
-                                            form="selection-update-{{ row.selection.id }}"
+                                            class="compact-textarea autosave-control"
+                                            data-autosave-field="comment"
                                         >{{ row.selection.comment }}</textarea>
                                     </div>
 
@@ -376,13 +371,9 @@
                                     </div>
 
                                     <div class="work-cell work-actions">
-                                        <button
-                                            type="submit"
-                                            class="compact-button"
-                                            form="selection-update-{{ row.selection.id }}"
-                                        >
-                                            OK
-                                        </button>
+                                        <div class="autosave-status" role="status" aria-live="polite">
+                                            Автосохранение
+                                        </div>
 
                                         <form
                                             method="post"
@@ -986,4 +977,114 @@
     {% endif %}
 </div>
 {% endcomment %}
+
+<script>
+    (() => {
+        const statusClasses = [
+            "selection-status-new",
+            "selection-status-review",
+            "selection-status-ready",
+            "selection-status-rejected",
+            "selection-status-default",
+        ];
+
+        function getCookie(name) {
+            const cookie = document.cookie
+                .split(";")
+                .map((item) => item.trim())
+                .find((item) => item.startsWith(`${name}=`));
+
+            return cookie ? decodeURIComponent(cookie.slice(name.length + 1)) : "";
+        }
+
+        function setStatus(row, state, text) {
+            const indicator = row.querySelector(".autosave-status");
+            indicator.className = `autosave-status autosave-status-${state}`;
+            indicator.textContent = text;
+        }
+
+        async function saveField(row, control, value) {
+            const body = new FormData();
+            body.append("autosave", "1");
+            body.append("field", control.dataset.autosaveField);
+            body.append("value", value);
+
+            setStatus(row, "saving", "Сохранение…");
+            control.classList.remove("autosave-error");
+
+            const response = await fetch(row.dataset.autosaveUrl, {
+                method: "POST",
+                headers: {
+                    "X-CSRFToken": getCookie("csrftoken"),
+                    "X-Requested-With": "XMLHttpRequest",
+                },
+                body,
+            });
+            const result = await response.json();
+
+            if (!response.ok || !result.saved) {
+                throw new Error(result.error || "Не удалось сохранить изменение.");
+            }
+
+            if (
+                control.dataset.autosaveField === "offer_amount"
+                && document.activeElement !== control
+                && control.value === value
+            ) {
+                control.value = result.display_value;
+            }
+
+            if (result.status_css_class) {
+                const wrapper = control.closest(".selection-status-wrap");
+                wrapper.classList.remove(...statusClasses);
+                wrapper.classList.add(result.status_css_class);
+            }
+
+            setStatus(row, "saved", "Сохранено");
+        }
+
+        document.querySelectorAll(".work-selection-row[data-autosave-url]").forEach((row) => {
+            let queue = Promise.resolve();
+
+            row.querySelectorAll(".autosave-control").forEach((control) => {
+                let timer;
+                let dirty = false;
+
+                const enqueue = () => {
+                    clearTimeout(timer);
+                    if (!dirty) {
+                        return;
+                    }
+
+                    dirty = false;
+                    const value = control.value;
+                    queue = queue
+                        .catch(() => undefined)
+                        .then(() => saveField(row, control, value))
+                        .catch((error) => {
+                            dirty = true;
+                            control.classList.add("autosave-error");
+                            setStatus(row, "error", error.message);
+                        });
+                };
+
+                if (control.tagName === "SELECT") {
+                    control.addEventListener("change", () => {
+                        dirty = true;
+                        enqueue();
+                    });
+                    return;
+                }
+
+                control.addEventListener("input", () => {
+                    clearTimeout(timer);
+                    dirty = true;
+                    setStatus(row, "pending", "Есть изменения");
+                    timer = setTimeout(enqueue, 900);
+                });
+                control.addEventListener("blur", enqueue);
+            });
+        });
+    })();
+</script>
 {% endblock %}
