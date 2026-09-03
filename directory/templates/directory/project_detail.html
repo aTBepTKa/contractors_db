@@ -165,7 +165,18 @@
             {% for item in grouped_need_items %}
                 <div class="work-section" id="need-{{ item.need.id }}">
                     <div class="work-section-header">
-                        <div>
+                        <div class="work-section-heading">
+                            <button
+                                type="button"
+                                class="section-toggle-button"
+                                data-section-toggle
+                                aria-expanded="true"
+                                aria-controls="need-content-{{ item.need.id }}"
+                                aria-label="Свернуть или развернуть раздел"
+                                title="Свернуть или развернуть раздел"
+                            >−</button>
+
+                            <div>
                             <div class="work-section-title">
                                 {{ item.need.specialty.code }} — {{ item.need.specialty.name }}
                             </div>
@@ -175,6 +186,7 @@
                                     {{ item.need.comment }}
                                 </div>
                             {% endif %}
+                            </div>
                         </div>
 
                         <div class="work-section-meta">
@@ -220,6 +232,7 @@
                         </div>
                     </div>
 
+                    <div class="work-section-content" id="need-content-{{ item.need.id }}">
                     {% if item.selection_rows %}
                         <div class="work-selection-list">
                             {% for row in item.selection_rows %}
@@ -379,6 +392,7 @@
                                             method="post"
                                             action="/selections/{{ row.selection.id }}/delete/"
                                             onsubmit="return confirm('Удалить строку подбора?');"
+                                            data-preserve-scroll
                                         >
                                             {% csrf_token %}
                                             <button type="submit" class="small-danger-button">
@@ -403,8 +417,13 @@
                     {% endif %}
 
                     {% if item.is_candidate_section_active %}
-                        <div class="inline-candidate-selection">
-                            <h3>Кандидаты по разделу {{ item.need.specialty.code }}</h3>
+                        <div class="inline-candidate-selection" data-candidate-panel>
+                            <div class="candidate-selection-header">
+                                <h3>Кандидаты по разделу {{ item.need.specialty.code }}</h3>
+                                <button type="button" class="candidate-close-button" data-candidate-close>
+                                    Скрыть кандидатов
+                                </button>
+                            </div>
 
                             {% if add_candidate_error %}
                                 <div class="form-errors">
@@ -494,7 +513,7 @@
                                                     </td>
 
                                                     <td>
-                                                        <form method="post">
+                                                        <form method="post" data-preserve-scroll>
                                                             {% csrf_token %}
                                                             <input type="hidden" name="action" value="add_candidate">
                                                             <input type="hidden" name="specialty_id" value="{{ item.need.specialty.id }}">
@@ -517,6 +536,7 @@
                             {% endif %}
                         </div>
                     {% endif %}
+                    </div>
                 </div>
             {% endfor %}
         </div>
@@ -1083,6 +1103,45 @@
                     timer = setTimeout(enqueue, 900);
                 });
                 control.addEventListener("blur", enqueue);
+            });
+        });
+
+        document.querySelectorAll("[data-section-toggle]").forEach((button) => {
+            button.addEventListener("click", () => {
+                const section = button.closest(".work-section");
+                const content = section.querySelector(".work-section-content");
+                const collapsed = section.classList.toggle("is-collapsed");
+
+                content.hidden = collapsed;
+                button.setAttribute("aria-expanded", String(!collapsed));
+                button.textContent = collapsed ? "+" : "−";
+            });
+        });
+
+        document.querySelectorAll("[data-candidate-close]").forEach((button) => {
+            button.addEventListener("click", () => {
+                const panel = button.closest("[data-candidate-panel]");
+                panel.hidden = true;
+
+                const url = new URL(window.location.href);
+                url.searchParams.delete("specialty");
+                window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+            });
+        });
+
+        const scrollStorageKey = `project-scroll:${window.location.pathname}`;
+        const savedScrollPosition = sessionStorage.getItem(scrollStorageKey);
+
+        if (savedScrollPosition !== null) {
+            sessionStorage.removeItem(scrollStorageKey);
+            window.requestAnimationFrame(() => {
+                window.scrollTo(0, Number(savedScrollPosition));
+            });
+        }
+
+        document.querySelectorAll("form[data-preserve-scroll]").forEach((form) => {
+            form.addEventListener("submit", () => {
+                sessionStorage.setItem(scrollStorageKey, String(window.scrollY));
             });
         });
     })();

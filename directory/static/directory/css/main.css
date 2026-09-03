@@ -145,7 +145,7 @@ select,
 input[type="text"] {
     padding: 7px 8px;
     border: 1px solid #cbd5e1;
-    border-radius: 4px;
+    border-radius: 6px;
 }
 
 button,
@@ -395,18 +395,14 @@ button:hover,
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.compact-select {
-    min-height: 38px;
-    padding: 7px 9px;
-}
-
+.compact-select,
 .compact-input {
     min-height: 38px;
     padding: 7px 9px;
 }
 
 .amount-input {
-    text-align: right;
+    text-align: left;
 }
 
 .compact-textarea {
@@ -414,7 +410,8 @@ button:hover,
     max-height: 140px;
     resize: vertical;
     padding: 8px 9px;
-    font: inherit;
+    font-family: inherit;
+    font-size: 13px;
 }
 
 .compact-select:focus,
@@ -916,32 +913,20 @@ button:hover,
 }
 
 .selection-status-wrap {
-    border-radius: 6px;
-    padding: 3px;
+    padding: 0;
+    background: transparent;
 }
 
 .selection-status-wrap select {
-    border: 1px solid transparent;
+    border: 1px solid #cbd5e1;
 }
 
-.selection-status-new {
-    background: #eef2ff;
-}
-
-.selection-status-review {
-    background: #fff7ed;
-}
-
-.selection-status-ready {
-    background: #ecfdf3;
-}
-
-.selection-status-rejected {
-    background: #fef2f2;
-}
-
+.selection-status-new,
+.selection-status-review,
+.selection-status-ready,
+.selection-status-rejected,
 .selection-status-default {
-    background: #f8fafc;
+    background: transparent;
 }
 
 .last-negotiation {
@@ -1012,6 +997,13 @@ button:hover,
 .need-add-grid select,
 .need-add-grid input {
     width: 100%;
+    min-height: 40px;
+    box-sizing: border-box;
+    color: #172033;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    padding: 8px 10px;
 }
 
 .need-add-button button {
@@ -1130,6 +1122,42 @@ button:hover,
     font-weight: 700;
 }
 
+.work-section-heading {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+}
+
+.section-toggle-button,
+.candidate-close-button {
+    padding: 4px 8px;
+    color: #475569;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 5px;
+    font-size: 11px;
+    line-height: 1.25;
+}
+
+.section-toggle-button {
+    flex: 0 0 24px;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    font-size: 16px;
+    line-height: 22px;
+}
+
+.section-toggle-button:hover,
+.candidate-close-button:hover {
+    color: #1e293b;
+    background: #f1f5f9;
+}
+
+.work-section.is-collapsed .work-section-header {
+    border-bottom: none;
+}
+
 .work-section-meta {
     display: flex;
     flex-wrap: wrap;
@@ -1180,7 +1208,7 @@ button:hover,
 }
 
 .work-comment textarea {
-    min-height: 58px;
+    min-height: 64px;
 }
 
 .work-negotiations .last-negotiation {
@@ -1196,8 +1224,8 @@ button:hover,
     min-height: 30px;
     padding: 6px 4px;
     border-radius: 6px;
-    color: #64748b;
-    font-size: 12px;
+    color: #94a3b8;
+    font-size: 11px;
     line-height: 1.25;
     text-align: center;
 }
@@ -1275,8 +1303,15 @@ button:hover,
 }
 
 .inline-candidate-selection h3 {
-    margin-top: 0;
-    margin-bottom: 10px;
+    margin: 0;
+}
+
+.candidate-selection-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
 }
 
 .inline-candidate-selection table {
