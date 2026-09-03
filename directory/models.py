@@ -217,6 +217,23 @@ class ObjectType(models.Model):
         return self.name
 
 
+class ProjectStatus(models.Model):
+    name = models.CharField(
+        "Наименование",
+        max_length=50,
+        unique=True,
+    )
+    is_active = models.BooleanField("Активен", default=True)
+
+    class Meta:
+        verbose_name = "Статус проекта"
+        verbose_name_plural = "Статусы проектов"
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
 class Project(models.Model):
     name = models.CharField(
         max_length=255,
@@ -228,6 +245,15 @@ class Project(models.Model):
         on_delete=models.PROTECT,
         related_name="projects",
         verbose_name="Тип объекта",
+    )
+
+    status = models.ForeignKey(
+        ProjectStatus,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="projects",
+        verbose_name="Статус проекта",
     )
 
     chief_project_engineer = models.ForeignKey(

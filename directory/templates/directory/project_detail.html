@@ -3,10 +3,23 @@
 {% block title %}{{ project.name }} — Проект{% endblock %}
 
 {% block content %}
+<div class="project-overview-grid">
 <div class="card project-header-card">
     <div class="project-header-top">
         <div>
             <h1>{{ project.name }}</h1>
+
+            <div class="project-title-status">
+                <strong>Статус проекта:</strong>
+                <form method="post" action="/projects/{{ project.id }}/status/" data-preserve-scroll>
+                    {% csrf_token %}
+                    <div class="project-status-progress" role="group" aria-label="Статус проекта">
+                        {% for status in project_statuses %}
+                            <button type="submit" name="status_id" value="{{ status.id }}" class="project-status-step{% if project.status_id == status.id %} is-active{% endif %}">{{ status.name }}</button>
+                        {% endfor %}
+                    </div>
+                </form>
+            </div>
 
             <div class="project-header-meta">
                 <span>
@@ -96,8 +109,8 @@
     </div>
 
     <div class="summary-status-list">
-        <div>Новый: <strong>{{ selection_status_counters.Новый }}</strong></div>
-        <div>Рассматривает: <strong>{{ selection_status_counters.Рассматривает }}</strong></div>
+        <div>Черновик: <strong>{{ selection_status_counters.Новый }}</strong></div>
+        <div>В работе: <strong>{{ selection_status_counters.Рассматривает }}</strong></div>
         <div>Готов: <strong>{{ selection_status_counters.Готов }}</strong></div>
         <div>Отказ: <strong>{{ selection_status_counters.Отказ }}</strong></div>
     </div>
@@ -118,9 +131,16 @@
         минимальное и максимальное КП, затем значения суммируются по разделам.
     </p>
 </div>
+</div>
 
 <div class="card project-needs-card">
-    <h2>Рабочая таблица подбора по разделам</h2>
+    <div class="work-table-toolbar">
+        <h2>Рабочая таблица подбора по разделам</h2>
+        <div class="work-table-actions">
+            <button type="button" class="small-button" data-sections-expand>Развернуть все</button>
+            <button type="button" class="small-button" data-sections-collapse>Свернуть все</button>
+        </div>
+    </div>
 
     <p class="muted">
         Основной экран подбора команды: по каждому нужному разделу показаны
@@ -163,21 +183,21 @@
     {% if grouped_need_items %}
         <div class="work-table">
             {% for item in grouped_need_items %}
-                <div class="work-section" id="need-{{ item.need.id }}">
+                <div class="work-section{% if not item.is_candidate_section_active %} is-collapsed{% endif %}" id="need-{{ item.need.id }}">
                     <div class="work-section-header">
                         <div class="work-section-heading">
                             <button
                                 type="button"
                                 class="section-toggle-button"
                                 data-section-toggle
-                                aria-expanded="true"
+                                aria-expanded="{% if item.is_candidate_section_active %}true{% else %}false{% endif %}"
                                 aria-controls="need-content-{{ item.need.id }}"
                                 aria-label="Свернуть или развернуть раздел"
                                 title="Свернуть или развернуть раздел"
-                            >−</button>
+                            >{% if item.is_candidate_section_active %}−{% else %}+{% endif %}</button>
 
                             <div>
-                            <div class="work-section-title">
+                            <div class="work-section-title section-title-toggle" data-section-toggle role="button" tabindex="0" aria-label="Свернуть или развернуть раздел">
                                 {{ item.need.specialty.code }} — {{ item.need.specialty.name }}
                             </div>
 
@@ -232,7 +252,7 @@
                         </div>
                     </div>
 
-                    <div class="work-section-content" id="need-content-{{ item.need.id }}">
+                    <div class="work-section-content" id="need-content-{{ item.need.id }}"{% if not item.is_candidate_section_active %} hidden{% endif %}>
                     {% if item.selection_rows %}
                         <div class="work-selection-list">
                             {% for row in item.selection_rows %}
@@ -242,33 +262,25 @@
                                     data-autosave-url="/selections/{{ row.selection.id }}/update/"
                                 >
                                     <div class="work-cell work-executor">
-                                        <strong>{{ row.selection.executor }}</strong><br>
-
-                                        <a class="small" href="/executors/{{ row.selection.executor.id }}/">
-                                            Карточка исполнителя
+                                        <a class="executor-name-link" href="/executors/{{ row.selection.executor.id }}/">
+                                            {{ row.selection.executor }}
                                         </a>
 
                                         <div class="small muted">
                                             {{ row.selection.executor.phone|default:"—" }}<br>
                                             {{ row.selection.executor.email|default:"—" }}
                                         </div>
-                                    </div>
 
-                                    <div class="work-cell work-status">
-                                        <label class="small muted">Статус</label>
-
-                                        <div class="selection-status-wrap {{ row.status_css_class }}">
-                                            <select
-                                                name="status_id"
-                                                class="compact-select autosave-control"
-                                                data-autosave-field="status_id"
-                                            >
-                                                {% for status in selection_statuses %}
-                                                    <option value="{{ status.id }}" {% if row.selection.status_id == status.id %}selected{% endif %}>
-                                                        {{ status.name }}
-                                                    </option>
-                                                {% endfor %}
-                                            </select>
+                                        <div class="work-status">
+                                            <label class="small muted">Статус</label>
+                                            <div class="selection-status-wrap selection-status-progress {{ row.status_css_class }}">
+                                                <select name="status_id" class="compact-select autosave-control" data-autosave-field="status_id">
+                                                    {% for status in selection_statuses %}<option value="{{ status.id }}" {% if row.selection.status_id == status.id %}selected{% endif %}>{{ status.name }}</option>{% endfor %}
+                                                </select>
+                                                <div class="selection-status-steps" role="group" aria-label="Статус подбора">
+                                                    {% for status in selection_statuses %}<button type="button" class="selection-status-step{% if row.selection.status_id == status.id %} is-active{% endif %}" data-status-value="{{ status.id }}">{% if status.name == "Новый" %}Черновик{% elif status.name == "Рассматривает" %}В работе{% else %}{{ status.name }}{% endif %}</button>{% endfor %}
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -361,8 +373,10 @@
                                             method="post"
                                             action="/selections/{{ row.selection.id }}/negotiations/add/"
                                             class="negotiation-add-form"
+                                            data-preserve-scroll
                                         >
                                             {% csrf_token %}
+                                            <input type="hidden" name="specialty" value="{{ item.need.specialty.id }}">
 
                                             <div class="negotiation-add negotiation-add-no-date">
                                                 <textarea
@@ -433,16 +447,25 @@
 
                             {% if item.candidate_items %}
                                 <div class="table-wrap">
-                                    <table>
+                                    <table class="candidate-table" data-resizable-table>
+                                        <colgroup>
+                                            <col data-column-key="candidate-name">
+                                            <col data-column-key="candidate-contacts">
+                                            <col data-column-key="candidate-software">
+                                            <col data-column-key="candidate-status">
+                                            <col data-column-key="candidate-projects">
+                                            <col data-column-key="candidate-comment">
+                                            <col data-column-key="candidate-action">
+                                        </colgroup>
                                         <thead>
                                             <tr>
-                                                <th>Исполнитель</th>
-                                                <th>Контакты</th>
-                                                <th>ПО</th>
-                                                <th>Статус</th>
-                                                <th>Последние проекты</th>
-                                                <th>Последний комментарий</th>
-                                                <th>Действие</th>
+                                                <th>Исполнитель<span class="column-resizer" aria-hidden="true"></span></th>
+                                                <th>Контакты<span class="column-resizer" aria-hidden="true"></span></th>
+                                                <th>ПО<span class="column-resizer" aria-hidden="true"></span></th>
+                                                <th>Статус<span class="column-resizer" aria-hidden="true"></span></th>
+                                                <th>Последние проекты<span class="column-resizer" aria-hidden="true"></span></th>
+                                                <th>Последний комментарий<span class="column-resizer" aria-hidden="true"></span></th>
+                                                <th>Действие<span class="column-resizer" aria-hidden="true"></span></th>
                                             </tr>
                                         </thead>
 
@@ -486,7 +509,7 @@
                                                             {% for project in candidate.projects %}
                                                                 <strong>{{ project.name }}</strong><br>
                                                                 <span class="small muted">
-                                                                    {{ project.specialty }}
+                                                                    {{ project.specialty }} / {{ project.status }}
                                                                     {% if project.amount %}
                                                                         / {{ project.amount }} руб.
                                                                     {% else %}
@@ -1107,16 +1130,56 @@
         });
 
         document.querySelectorAll("[data-section-toggle]").forEach((button) => {
-            button.addEventListener("click", () => {
+            const toggle = () => {
                 const section = button.closest(".work-section");
                 const content = section.querySelector(".work-section-content");
                 const collapsed = section.classList.toggle("is-collapsed");
+                const indicator = section.querySelector(".section-toggle-button");
 
                 content.hidden = collapsed;
+                if (indicator) {
+                    indicator.setAttribute("aria-expanded", String(!collapsed));
+                    indicator.textContent = collapsed ? "+" : "−";
+                }
                 button.setAttribute("aria-expanded", String(!collapsed));
-                button.textContent = collapsed ? "+" : "−";
+            };
+            button.addEventListener("click", toggle);
+            if (!button.classList.contains("section-toggle-button")) {
+                button.addEventListener("keydown", (event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        toggle();
+                    }
+                });
+            }
+        });
+
+        document.querySelectorAll(".selection-status-progress").forEach((wrap) => {
+            const select = wrap.querySelector("select.autosave-control");
+            wrap.querySelectorAll("[data-status-value]").forEach((button) => {
+                button.addEventListener("click", () => {
+                    select.value = button.dataset.statusValue;
+                    select.dispatchEvent(new Event("change", { bubbles: true }));
+                    wrap.querySelectorAll("[data-status-value]").forEach((item) => item.classList.toggle("is-active", item === button));
+                });
             });
         });
+
+        const setAllSectionsCollapsed = (collapsed) => {
+            document.querySelectorAll(".work-section").forEach((section) => {
+                section.classList.toggle("is-collapsed", collapsed);
+                const content = section.querySelector(".work-section-content");
+                const button = section.querySelector(".section-toggle-button");
+                if (content) content.hidden = collapsed;
+                if (button) {
+                    button.setAttribute("aria-expanded", String(!collapsed));
+                    button.textContent = collapsed ? "+" : "−";
+                }
+            });
+        };
+
+        document.querySelector("[data-sections-expand]")?.addEventListener("click", () => setAllSectionsCollapsed(false));
+        document.querySelector("[data-sections-collapse]")?.addEventListener("click", () => setAllSectionsCollapsed(true));
 
         document.querySelectorAll("[data-candidate-close]").forEach((button) => {
             button.addEventListener("click", () => {
@@ -1136,12 +1199,42 @@
             sessionStorage.removeItem(scrollStorageKey);
             window.requestAnimationFrame(() => {
                 window.scrollTo(0, Number(savedScrollPosition));
+                window.setTimeout(() => window.scrollTo(0, Number(savedScrollPosition)), 150);
             });
         }
 
         document.querySelectorAll("form[data-preserve-scroll]").forEach((form) => {
             form.addEventListener("submit", () => {
                 sessionStorage.setItem(scrollStorageKey, String(window.scrollY));
+            });
+        });
+
+        document.querySelectorAll("[data-resizable-table]").forEach((table) => {
+            const columns = Array.from(table.querySelectorAll("col[data-column-key]"));
+            const key = `project-candidate-widths:${window.location.pathname}`;
+            const saved = JSON.parse(localStorage.getItem(key) || "{}");
+            columns.forEach((column) => {
+                if (saved[column.dataset.columnKey]) column.style.width = `${saved[column.dataset.columnKey]}px`;
+            });
+            table.querySelectorAll("th").forEach((header, index) => {
+                const handle = header.querySelector(".column-resizer");
+                const column = columns[index];
+                if (!handle || !column) return;
+                handle.addEventListener("pointerdown", (event) => {
+                    event.preventDefault();
+                    const startX = event.clientX;
+                    const startWidth = column.getBoundingClientRect().width;
+                    const resize = (move) => column.style.width = `${Math.max(80, startWidth + move.clientX - startX)}px`;
+                    const stop = () => {
+                        document.removeEventListener("pointermove", resize);
+                        document.removeEventListener("pointerup", stop);
+                        const widths = {};
+                        columns.forEach((item) => widths[item.dataset.columnKey] = Math.round(item.getBoundingClientRect().width));
+                        localStorage.setItem(key, JSON.stringify(widths));
+                    };
+                    document.addEventListener("pointermove", resize);
+                    document.addEventListener("pointerup", stop);
+                });
             });
         });
     })();

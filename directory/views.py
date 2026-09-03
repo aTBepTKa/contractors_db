@@ -12,6 +12,7 @@ from .models import (
     ExecutorStatus,
     ObjectType,
     Project,
+    ProjectStatus,
     ProjectSelection,
     ProjectSpecialtyNeed,
     SelectionNegotiation,
@@ -164,7 +165,7 @@ def executor_list(request):
                         "project": selection.project.name,
                         "specialty": selection.specialty.code,
                         "amount": format_money(selection.offer_amount),
-                        "status": selection.status.name,
+            "status": selection.project.status.name if selection.project.status else "—",
                     }
                 )
                 seen_project_ids.add(selection.project_id)
@@ -280,6 +281,7 @@ def project_list(request):
 
     projects = Project.objects.select_related(
         "object_type",
+        "status",
         "chief_project_engineer",
         "created_by",
     ).order_by("name")
@@ -409,6 +411,7 @@ def project_detail(request, project_id):
         Project.objects
         .select_related(
             "object_type",
+            "status",
             "chief_project_engineer",
             "created_by",
         )
@@ -549,6 +552,7 @@ def project_detail(request, project_id):
                         projects.append(
                             {
                                 "name": selection.project.name,
+                                "status": selection.project.status.name if selection.project.status else "—",
                                 "specialty": selection.specialty.code,
                                 "amount": format_money(selection.offer_amount),
                             }
@@ -782,7 +786,17 @@ def project_detail(request, project_id):
         "selected_specialty_id": selected_specialty_id,
         "selected_specialty": selected_specialty,
         "candidate_items": candidate_items,
-        "selection_statuses": SelectionStatus.objects.filter(is_active=True).order_by("name"),
+        "selection_statuses": SelectionStatus.objects.filter(is_active=True).order_by(
+            models.Case(
+                models.When(name="Новый", then=0),
+                models.When(name="Рассматривает", then=1),
+                models.When(name="Отказ", then=2),
+                models.When(name="Готов", then=3),
+                default=99,
+                output_field=models.IntegerField(),
+            ),
+            "name",
+        ),
         "selection_specialty_id": selection_specialty_id,
         "selection_status_id": selection_status_id,
         
@@ -798,9 +812,35 @@ def project_detail(request, project_id):
         "needs_empty_count": needs_empty_count,
 
         "selection_status_counters": selection_status_counters,
+        "project_statuses": ProjectStatus.objects.filter(is_active=True).order_by(
+            models.Case(
+                models.When(name="Черновик", then=0),
+                models.When(name="В работе", then=1),
+                models.When(name="Завершен", then=2),
+                default=99,
+                output_field=models.IntegerField(),
+            ),
+            "name",
+        ),
     }
 
     return render(request, "directory/project_detail.html", context)
+
+
+@login_required
+def update_project_status(request, project_id):
+    project = get_object_or_404(Project, id=project_id)
+
+    if request.method == "POST":
+        status = ProjectStatus.objects.filter(
+            id=request.POST.get("status_id"),
+            is_active=True,
+        ).first()
+        if status:
+            project.status = status
+            project.save(update_fields=["status", "updated_at"])
+
+    return redirect("project_detail", project_id=project.id)
 
 @login_required
 def update_project_selection(request, selection_id):
@@ -943,7 +983,9 @@ def add_selection_negotiation(request, selection_id):
             user=request.user,
         )
 
-    return redirect(f"/projects/{selection.project.id}/#selection-{selection.id}")
+    specialty_id = request.POST.get("specialty")
+    suffix = f"?specialty={specialty_id}" if specialty_id else ""
+    return redirect(f"/projects/{selection.project.id}/{suffix}#selection-{selection.id}")
 
 @login_required
 def delete_project_selection(request, selection_id):

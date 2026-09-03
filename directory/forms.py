@@ -7,6 +7,7 @@ from .models import (
     ExecutorStatus,
     ObjectType,
     Project,
+    ProjectStatus,
     ProjectSelection,
     SelectionStatus,
     Software,
@@ -124,6 +125,7 @@ class ProjectForm(forms.ModelForm):
         fields = (
             "name",
             "object_type",
+            "status",
             "chief_project_engineer",
             "area",
             "comment",
@@ -139,6 +141,11 @@ class ProjectForm(forms.ModelForm):
         self.fields["object_type"].queryset = ObjectType.objects.filter(
             is_active=True
         ).order_by("name")
+
+        self.fields["status"].queryset = ProjectStatus.objects.filter(
+            is_active=True
+        ).order_by("name")
+        self.fields["status"].required = True
 
         self.fields["chief_project_engineer"].queryset = User.objects.filter(
             is_active=True

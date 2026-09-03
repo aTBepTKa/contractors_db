@@ -4,17 +4,19 @@
 
 {% block content %}
 <div class="card">
-    <h1>Исполнители</h1>
-    <p class="muted">Общий список исполнителей с автоматической фильтрацией по специальности, ПО, статусу и контактам.</p>
-    <p><a class="button" href="/executors/add/">Добавить исполнителя</a></p>
-</div>
+    <div class="executor-intro-layout">
+        <div>
+            <h1>Исполнители</h1>
+            <p class="muted">Общий список исполнителей с автоматической фильтрацией по специальности, ПО, статусу и контактам.</p>
+            <p><a class="button" href="/executors/add/">Добавить исполнителя</a></p>
+        </div>
 
-<div class="card">
-    <div class="stat-grid">
-        <div class="stat"><div class="stat-value">{{ total_executors_count }}</div><div class="stat-label">Всего исполнителей</div></div>
-        <div class="stat"><div class="stat-value">{{ active_executors_count }}</div><div class="stat-label">Активных</div></div>
-        <div class="stat"><div class="stat-value">{{ inactive_executors_count }}</div><div class="stat-label">Неактивных / ограниченных</div></div>
-        <div class="stat"><div class="stat-value">{{ software_executors_count }}</div><div class="stat-label">С указанным ПО</div></div>
+        <div class="executor-mini-stats">
+            <div class="executor-mini-stat"><div class="stat-value">{{ total_executors_count }}</div><div class="stat-label">Всего исполнителей</div></div>
+            <div class="executor-mini-stat"><div class="stat-value">{{ active_executors_count }}</div><div class="stat-label">Активных</div></div>
+            <div class="executor-mini-stat"><div class="stat-value">{{ inactive_executors_count }}</div><div class="stat-label">Неактивных / ограниченных</div></div>
+            <div class="executor-mini-stat"><div class="stat-value">{{ software_executors_count }}</div><div class="stat-label">С указанным ПО</div></div>
+        </div>
     </div>
 </div>
 

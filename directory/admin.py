@@ -12,6 +12,7 @@ from .models import (
     ProjectSpecialtyNeed,
     SelectionNegotiation,
     SelectionStatus,
+    ProjectStatus,
     Software,
     Specialty,
 )
@@ -130,6 +131,13 @@ class SelectionStatusAdmin(admin.ModelAdmin):
 
 @admin.register(Software)
 class SoftwareAdmin(admin.ModelAdmin):
+    list_display = ("name", "is_active")
+    list_filter = ("is_active",)
+    search_fields = ("name",)
+
+
+@admin.register(ProjectStatus)
+class ProjectStatusAdmin(admin.ModelAdmin):
     list_display = ("name", "is_active")
     list_filter = ("is_active",)
     search_fields = ("name",)
@@ -260,12 +268,13 @@ class ExecutorAdmin(admin.ModelAdmin):
 class ProjectAdmin(admin.ModelAdmin):
     list_display = (
         "name",
+        "status",
         "object_type",
         "area",
         "selections_count",
         "updated_at",
     )
-    list_filter = ("object_type",)
+    list_filter = ("status", "object_type")
     search_fields = ("name", "comment")
     readonly_fields = ("created_at", "updated_at")
     inlines = [

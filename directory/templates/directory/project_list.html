@@ -66,6 +66,7 @@
                 <thead>
                     <tr>
                         <th>Проект</th>
+                        <th>Статус</th>
                         <th>Тип объекта</th>
                         <th>ГИП</th>
                         <th>Площадь, м²</th>
@@ -80,16 +81,12 @@
                     {% for item in items %}
                         <tr>
                             <td>
-                                <strong>{{ item.project.name }}</strong><br>
-                                <a class="small" href="/projects/{{ item.project.id }}/">
-                                    Открыть карточку
-                                </a>
-                                <br>
-                                <a class="small" href="/admin/directory/project/{{ item.project.id }}/change/">
-                                    Открыть в админке
+                                <a class="executor-name-link" href="/projects/{{ item.project.id }}/">
+                                    {{ item.project.name }}
                                 </a>
                             </td>
 
+                            <td>{{ item.project.status|default:"—" }}</td>
                             <td>{{ item.project.object_type }}</td>
                             <td>
                                 {% if item.project.chief_project_engineer %}

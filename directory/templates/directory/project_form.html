@@ -7,7 +7,7 @@
     <h1>{{ page_title }}</h1>
 
     <p class="muted">
-        Основные данные проекта: наименование объекта, тип, площадь и комментарий.
+        Основные данные проекта: наименование объекта, тип, статус, площадь и комментарий.
     </p>
 
     <p>
@@ -36,6 +36,12 @@
                 {{ form.object_type.label_tag }}
                 {{ form.object_type }}
                 {{ form.object_type.errors }}
+            </div>
+
+            <div>
+                {{ form.status.label_tag }}
+                {{ form.status }}
+                {{ form.status.errors }}
             </div>
 
             <div>
