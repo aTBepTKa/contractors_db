@@ -25,6 +25,11 @@
         <p><strong>Почта:</strong> {{ executor.email|default:"—" }}</p>
         <p><strong>Мессенджер:</strong> {{ executor.messenger|default:"—" }}</p>
         <p><strong>Тип занятости:</strong> {{ executor.employment_type|default:"—" }}</p>
+        <p><strong>Город / местоположение:</strong> {{ executor.city|default:"—" }}</p>
+        <p><strong>Год рождения:</strong> {{ executor.birth_year|default_if_none:"—" }}</p>
+        <p><strong>Начал работать с:</strong> {{ executor.work_start_year|default_if_none:"—" }}</p>
+        <p><strong>Источник контакта:</strong> {{ executor.contact_source|default:"—" }}</p>
+        {% if executor.source_comment %}<p>{{ executor.source_comment|linebreaksbr }}</p>{% endif %}
     </div>
 
     <div class="card">
@@ -78,7 +83,7 @@
     <h2>Общий комментарий</h2>
 
     {% if executor.general_comment %}
-        <p>{{ executor.general_comment }}</p>
+        <p>{{ executor.general_comment|linebreaksbr }}</p>
     {% else %}
         <p class="muted">Общий комментарий не заполнен.</p>
     {% endif %}

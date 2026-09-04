@@ -1,5 +1,19 @@
 from django.conf import settings
 from django.db import models
+from django.core.validators import MinValueValidator, MaxValueValidator
+
+
+class ContactSource(models.Model):
+    name = models.CharField("Наименование", max_length=100, unique=True)
+    is_active = models.BooleanField("Активен", default=True)
+
+    class Meta:
+        verbose_name = "Источник контакта"
+        verbose_name_plural = "Источники контактов"
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
 
 
 class EmploymentType(models.Model):
@@ -63,6 +77,20 @@ class Software(models.Model):
 
 
 class Executor(models.Model):
+    contact_source = models.ForeignKey(
+        ContactSource, verbose_name="Источник контакта", on_delete=models.PROTECT,
+        null=True, blank=True, related_name="executors",
+    )
+    source_comment = models.TextField("Комментарий к источнику", blank=True)
+    city = models.CharField("Город / местоположение", max_length=255, blank=True)
+    work_start_year = models.PositiveSmallIntegerField(
+        "Начал работать с", null=True, blank=True,
+        validators=[MinValueValidator(1900), MaxValueValidator(2100)],
+    )
+    birth_year = models.PositiveSmallIntegerField(
+        "Год рождения", null=True, blank=True,
+        validators=[MinValueValidator(1900), MaxValueValidator(2100)],
+    )
     last_name = models.CharField(
         "Фамилия",
         max_length=100,

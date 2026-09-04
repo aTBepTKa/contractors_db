@@ -27,3 +27,5 @@ Thumbs.db
 postgres_data/
 
 backups/
+outputs/
+node_modules/

@@ -1,6 +1,7 @@
 from django.contrib import admin
 
 from .models import (
+    ContactSource,
     EmploymentType,
     Executor,
     ExecutorComment,
@@ -94,6 +95,13 @@ class SelectionNegotiationInline(admin.TabularInline):
     autocomplete_fields = ("user",)
 
 
+@admin.register(ContactSource)
+class ContactSourceAdmin(admin.ModelAdmin):
+    list_display = ("name", "is_active")
+    list_filter = ("is_active",)
+    search_fields = ("name",)
+
+
 @admin.register(EmploymentType)
 class EmploymentTypeAdmin(admin.ModelAdmin):
     list_display = ("name", "is_active")
@@ -180,6 +188,10 @@ class ExecutorAdmin(admin.ModelAdmin):
     )
 
     fieldsets = (
+        (
+            "Источник и опыт",
+            {"fields": ("contact_source", "source_comment", "city", "birth_year", "work_start_year")},
+        ),
         (
             "ФИО",
             {

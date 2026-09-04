@@ -67,6 +67,17 @@
             </div>
         </div>
 
+        <h2>Источник и опыт</h2>
+        <div class="executor-form-grid executor-form-grid-3">
+            <div>{{ form.city.label_tag }}{{ form.city }}{{ form.city.errors }}</div>
+            <div>{{ form.birth_year.label_tag }}{{ form.birth_year }}{{ form.birth_year.errors }}</div>
+            <div>{{ form.work_start_year.label_tag }}{{ form.work_start_year }}{{ form.work_start_year.errors }}</div>
+            <div>{{ form.contact_source.label_tag }}{{ form.contact_source }}{{ form.contact_source.errors }}</div>
+        </div>
+        <div class="executor-form-wide">
+            {{ form.source_comment.label_tag }}{{ form.source_comment }}{{ form.source_comment.errors }}
+        </div>
+
         <h2>Статус</h2>
         <div class="executor-form-grid executor-form-grid-2">
             <div>

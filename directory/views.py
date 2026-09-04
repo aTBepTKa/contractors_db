@@ -131,6 +131,9 @@ def executor_list(request):
             | models.Q(general_comment__icontains=search_query)
             | models.Q(status_comment__icontains=search_query)
             | models.Q(software_comment__icontains=search_query)
+            | models.Q(city__icontains=search_query)
+            | models.Q(contact_source__name__icontains=search_query)
+            | models.Q(source_comment__icontains=search_query)
         )
 
     if sort == "status":

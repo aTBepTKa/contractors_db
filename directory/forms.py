@@ -2,6 +2,7 @@ from django import forms
 from django.contrib.auth import get_user_model
 
 from .models import (
+    ContactSource,
     EmploymentType,
     Executor,
     ExecutorStatus,
@@ -78,6 +79,11 @@ class ExecutorForm(forms.ModelForm):
             "last_name",
             "first_name",
             "middle_name",
+            "birth_year",
+            "work_start_year",
+            "city",
+            "contact_source",
+            "source_comment",
             "phone",
             "email",
             "messenger",
@@ -95,6 +101,12 @@ class ExecutorForm(forms.ModelForm):
         self.fields["employment_type"].queryset = EmploymentType.objects.filter(
             is_active=True
         ).order_by("name")
+        self.fields["contact_source"].queryset = ContactSource.objects.filter(is_active=True)
+        self.fields["source_comment"].widget = forms.Textarea(attrs={"rows": 3})
+        if not self.instance.pk and "employment_type" not in self.initial:
+            default_type = self.fields["employment_type"].queryset.filter(name="Самозанятый").first()
+            if default_type:
+                self.initial["employment_type"] = default_type.pk
 
         self.fields["status"].queryset = ExecutorStatus.objects.filter(
             is_active=True
@@ -146,6 +158,10 @@ class ProjectForm(forms.ModelForm):
             is_active=True
         ).order_by("name")
         self.fields["status"].required = True
+        if not self.instance.pk:
+            draft_status = self.fields["status"].queryset.filter(name="Черновик").first()
+            if draft_status:
+                self.initial["status"] = draft_status.pk
 
         self.fields["chief_project_engineer"].queryset = User.objects.filter(
             is_active=True
