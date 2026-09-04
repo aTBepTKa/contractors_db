@@ -1746,6 +1746,11 @@ button:hover,
     overflow-x: auto;
 }
 
+.copyable-email {
+    cursor: copy;
+    color: #1d4ed8;
+}
+
 .executor-table {
     width: 100%;
     min-width: 1070px;

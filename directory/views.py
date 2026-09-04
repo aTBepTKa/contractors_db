@@ -151,6 +151,7 @@ def executor_list(request):
             for item in executor.executor_specialties.all()
         )
         software_text = ", ".join(item.name for item in executor.software.all())
+        software_items = [item.name for item in executor.software.all()]
 
         selections = sorted(
             executor.project_selections.all(),
@@ -167,6 +168,7 @@ def executor_list(request):
                     {
                         "project": selection.project.name,
                         "specialty": selection.specialty.code,
+                        "selection_status": selection.status.name if selection.status else "—",
                         "amount": format_money(selection.offer_amount),
             "status": selection.project.status.name if selection.project.status else "—",
                     }
@@ -183,6 +185,7 @@ def executor_list(request):
                 "executor": executor,
                 "specialties": specialties_text,
                 "software": software_text,
+                "software_items": software_items,
                 "last_projects": last_projects,
                 "last_comment": last_comment,
             }
@@ -557,6 +560,7 @@ def project_detail(request, project_id):
                                 "name": selection.project.name,
                                 "status": selection.project.status.name if selection.project.status else "—",
                                 "specialty": selection.specialty.code,
+                                "selection_status": selection.status.name if selection.status else "—",
                                 "amount": format_money(selection.offer_amount),
                             }
                         )

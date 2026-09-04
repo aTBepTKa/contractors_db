@@ -113,11 +113,13 @@
                             <td>{{ item.specialties|default:"—" }}</td>
                             <td class="executor-contacts">
                                 {{ item.executor.phone|default:"—" }}<br>
-                                {{ item.executor.email|default:"—" }}
+                                {% if item.executor.email %}<span class="copyable-email" data-copy-email="{{ item.executor.email }}" title="Скопировать email">{{ item.executor.email }}</span>{% else %}—{% endif %}
                                 {% if item.executor.messenger %}<br>{{ item.executor.messenger }}{% endif %}
                             </td>
                             <td>
-                                {{ item.software|default:"—" }}
+                                {% if item.software_items %}
+                                    {% for program in item.software_items %}<div>{{ program }}</div>{% endfor %}
+                                {% else %}—{% endif %}
                                 {% if item.executor.software_comment %}<br><span class="small muted">{{ item.executor.software_comment }}</span>{% endif %}
                             </td>
                             <td>
@@ -127,9 +129,11 @@
                             <td>
                                 {% if item.last_projects %}
                                     {% for project in item.last_projects %}
-                                        <strong>{{ project.project }}</strong><br>
+                                        <strong>{{ project.project }}</strong>
+                                        <span class="small muted">({{ project.status }})</span><br>
                                         <span class="small muted">
-                                            {{ project.specialty }} / {{ project.status }}
+                                            {{ project.specialty }} /
+                                            {% if project.selection_status == "Новый" %}Черновик{% elif project.selection_status == "Рассматривает" %}В работе{% else %}{{ project.selection_status }}{% endif %}
                                             {% if project.amount %} / {{ project.amount }} руб.{% else %} / сумма не указана{% endif %}
                                         </span>{% if not forloop.last %}<br>{% endif %}
                                     {% endfor %}
@@ -219,6 +223,19 @@
 
                 document.addEventListener("pointermove", resize);
                 document.addEventListener("pointerup", stop);
+            });
+        });
+
+        document.querySelectorAll("[data-copy-email]").forEach((email) => {
+            email.addEventListener("click", async () => {
+                try {
+                    await navigator.clipboard.writeText(email.dataset.copyEmail);
+                    const original = email.textContent;
+                    email.textContent = "Скопировано";
+                    setTimeout(() => { email.textContent = original; }, 1000);
+                } catch (error) {
+                    email.title = "Не удалось скопировать";
+                }
             });
         });
     })();
