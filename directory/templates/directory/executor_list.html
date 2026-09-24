@@ -78,12 +78,16 @@
 </div>
 
 <div class="card">
-    <h2>Найдено: {{ items|length }}</h2>
+    <div class="executor-list-heading">
+        <h2>Найдено: {{ items|length }}</h2>
+        <button type="button" class="button" id="bulk-add-open" disabled>Добавить выбранных в проект (<span id="bulk-selected-count">0</span>)</button>
+    </div>
     {% if items %}
         <p class="small muted">Потяните границу заголовка, чтобы изменить ширину столбца.</p>
         <div class="table-wrap executor-table-wrap">
             <table class="executor-table" data-resizable-table>
-                <colgroup>
+                    <colgroup>
+                    <col data-column-key="select" style="width: 44px;">
                     <col data-column-key="name" style="width: 190px;">
                     <col data-column-key="specialties" style="width: 150px;">
                     <col data-column-key="contacts" style="width: 180px;">
@@ -94,6 +98,7 @@
                 </colgroup>
                 <thead>
                     <tr>
+                        <th><input type="checkbox" id="bulk-select-all" aria-label="Выбрать всех"></th>
                         <th>ФИО<span class="column-resizer" aria-hidden="true"></span></th>
                         <th>Специальности<span class="column-resizer" aria-hidden="true"></span></th>
                         <th>Контакты<span class="column-resizer" aria-hidden="true"></span></th>
@@ -106,6 +111,7 @@
                 <tbody>
                     {% for item in items %}
                         <tr class="{% if item.executor.status.name != 'Активный' %}inactive{% endif %}">
+                            <td><input type="checkbox" class="bulk-executor-check" value="{{ item.executor.id }}" aria-label="Выбрать {{ item.executor }}"></td>
                             <td>
                                 <a class="executor-name-link" href="/executors/{{ item.executor.id }}/">{{ item.executor }}</a><br>
                                 <a class="small" href="/executors/{{ item.executor.id }}/edit/">Редактировать</a>
@@ -154,6 +160,33 @@
     {% endif %}
 </div>
 
+<div class="bulk-add-modal" id="bulk-add-modal" hidden>
+    <div class="bulk-add-dialog" role="dialog" aria-modal="true" aria-labelledby="bulk-add-title">
+        <h2 id="bulk-add-title">Добавить исполнителей в проект</h2>
+        <form method="post" action="/executors/bulk-add/" id="bulk-add-form">
+            {% csrf_token %}
+            <input type="hidden" name="return_url" value="{{ request.get_full_path }}">
+            <label>Проект
+                <select name="project_id" required>
+                    <option value="">— Выберите проект —</option>
+                    {% for project in projects %}<option value="{{ project.id }}">{{ project.name }}{% if project.status %} — {{ project.status.name }}{% endif %}</option>{% endfor %}
+                </select>
+            </label>
+            <label>Раздел
+                <select name="specialty_id" required>
+                    <option value="">— Выберите раздел —</option>
+                    {% for specialty in bulk_specialties %}<option value="{{ specialty.id }}">{{ specialty.code }} — {{ specialty.name }}</option>{% endfor %}
+                </select>
+            </label>
+            <p class="small muted">Если раздел ещё не создан, он будет создан автоматически.</p>
+            <div class="bulk-add-dialog-actions">
+                <button type="button" class="button secondary-button" id="bulk-add-cancel">Отмена</button>
+                <button type="submit" class="button">Добавить</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
     (() => {
         const filterForm = document.querySelector("#executor-filter-form");
@@ -197,6 +230,7 @@
         table.querySelectorAll("th").forEach((header, index) => {
             const handle = header.querySelector(".column-resizer");
             const column = columns[index];
+            if (!handle || !column) return;
             let startX;
             let startWidth;
 
@@ -223,6 +257,33 @@
 
                 document.addEventListener("pointermove", resize);
                 document.addEventListener("pointerup", stop);
+            });
+        });
+
+        const bulkChecks = Array.from(document.querySelectorAll(".bulk-executor-check"));
+        const bulkOpen = document.querySelector("#bulk-add-open");
+        const bulkCount = document.querySelector("#bulk-selected-count");
+        const bulkModal = document.querySelector("#bulk-add-modal");
+        const updateBulkState = () => {
+            const selected = bulkChecks.filter((check) => check.checked);
+            bulkCount.textContent = selected.length;
+            bulkOpen.disabled = selected.length === 0;
+            document.querySelector("#bulk-select-all").checked = bulkChecks.length > 0 && selected.length === bulkChecks.length;
+        };
+        bulkChecks.forEach((check) => check.addEventListener("change", updateBulkState));
+        document.querySelector("#bulk-select-all")?.addEventListener("change", (event) => {
+            bulkChecks.forEach((check) => { check.checked = event.target.checked; });
+            updateBulkState();
+        });
+        bulkOpen?.addEventListener("click", () => { bulkModal.hidden = false; });
+        document.querySelector("#bulk-add-cancel")?.addEventListener("click", () => { bulkModal.hidden = true; });
+        document.querySelector("#bulk-add-form")?.addEventListener("submit", (event) => {
+            bulkChecks.filter((check) => check.checked).forEach((check) => {
+                const input = document.createElement("input");
+                input.type = "hidden";
+                input.name = "executor_ids";
+                input.value = check.value;
+                event.currentTarget.appendChild(input);
             });
         });
 

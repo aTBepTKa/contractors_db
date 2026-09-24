@@ -1,5 +1,6 @@
 from django.contrib.auth.decorators import login_required
-from django.db import IntegrityError, models
+from django.contrib import messages
+from django.db import IntegrityError, models, transaction
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -80,6 +81,51 @@ def get_need_status(selection_list):
 @login_required
 def executor_search(request):
     return redirect("executor_list")
+
+@login_required
+def bulk_add_executors(request):
+    if request.method != "POST":
+        return redirect("executor_list")
+
+    executor_ids = request.POST.getlist("executor_ids")
+    project = get_object_or_404(Project, id=request.POST.get("project_id"))
+    specialty = get_object_or_404(Specialty, id=request.POST.get("specialty_id"))
+    new_status = get_object_or_404(SelectionStatus, name="Новый")
+    return_url = request.POST.get("return_url") or "/executors/"
+    if not return_url.startswith("/") or return_url.startswith("//"):
+        return_url = "/executors/"
+
+    if executor_ids:
+        selected_executors = Executor.objects.filter(id__in=executor_ids)
+        incompatible = selected_executors.exclude(
+            executor_specialties__specialty=specialty
+        ).distinct()
+        compatible = selected_executors.exclude(id__in=incompatible.values_list("id", flat=True))
+        if incompatible.exists():
+            names = ", ".join(str(executor) for executor in incompatible[:5])
+            suffix = " и другие" if incompatible.count() > 5 else ""
+            messages.warning(
+                request,
+                f"Не добавлены исполнители без специальности {specialty.code}: "
+                f"{names}{suffix}.",
+            )
+
+        if compatible.exists():
+            with transaction.atomic():
+                ProjectSpecialtyNeed.objects.get_or_create(
+                    project=project,
+                    specialty=specialty,
+                    defaults={"created_by": request.user},
+                )
+                for executor_id in compatible.values_list("id", flat=True):
+                    ProjectSelection.objects.get_or_create(
+                        project=project,
+                        specialty=specialty,
+                        executor_id=executor_id,
+                        defaults={"status": new_status},
+                    )
+
+    return redirect(return_url)
 
 @login_required
 def executor_list(request):
@@ -202,6 +248,8 @@ def executor_list(request):
         "show_all": show_all,
         "search_query": search_query,
         "sort": sort,
+        "projects": Project.objects.select_related("status").order_by("name"),
+        "bulk_specialties": Specialty.objects.filter(is_active=True).order_by("code"),
         "total_executors_count": Executor.objects.count(),
         "active_executors_count": Executor.objects.filter(status__name="Активный").count(),
         "inactive_executors_count": Executor.objects.exclude(status__name="Активный").count(),
@@ -459,6 +507,11 @@ def project_detail(request, project_id):
                 )
             elif not specialty or not executor:
                 add_candidate_error = "Не выбрана специальность или исполнитель."
+            elif not executor.executor_specialties.filter(specialty=specialty).exists():
+                add_candidate_error = (
+                    f"Исполнитель «{executor}» не имеет специальности {specialty.code} "
+                    "и не может быть добавлен в этот раздел."
+                )
             else:
                 try:
                     ProjectSelection.objects.create(
@@ -749,6 +802,21 @@ def project_detail(request, project_id):
         need_items.append(need_item)
         grouped_need_items.append(need_item)
 
+    selection_status_counters = {
+        "Новый": 0,
+        "Рассматривает": 0,
+        "Готов": 0,
+        "Отказ": 0,
+        "Другие": 0,
+    }
+    for item in need_items:
+        for selection in item["selections"]:
+            status_name = selection.status.name if selection.status else ""
+            if status_name in selection_status_counters:
+                selection_status_counters[status_name] += 1
+            else:
+                selection_status_counters["Другие"] += 1
+
     used_need_specialty_ids = [
         item["need"].specialty_id
         for item in need_items
@@ -776,7 +844,7 @@ def project_detail(request, project_id):
     context = {
         "project": project,
         "selection_items": selection_items,
-        "selections_count": len(selection_items),
+        "selections_count": sum(item["selections_count"] for item in need_items),
         "project_min_total": format_money(project_min_total),
         "project_max_total": format_money(project_max_total),
         "project_sections_with_amount": project_sections_with_amount,

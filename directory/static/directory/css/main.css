@@ -65,6 +65,20 @@ a:hover {
     color: #6b7280;
 }
 
+.page-messages {
+    max-width: 1320px;
+    margin: 12px auto 0;
+    padding: 0 28px;
+}
+
+.page-message {
+    padding: 10px 14px;
+    border-radius: 6px;
+    background: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+}
+
 .grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1746,6 +1760,41 @@ button:hover,
     overflow-x: auto;
 }
 
+.executor-list-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.executor-list-heading h2 { margin-bottom: 0; }
+
+.bulk-add-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    display: grid;
+    place-items: center;
+    padding: 20px;
+    background: rgb(15 23 42 / 45%);
+}
+
+.bulk-add-modal[hidden] {
+    display: none;
+}
+
+.bulk-add-dialog {
+    width: min(480px, 100%);
+    padding: 24px;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 20px 50px rgb(15 23 42 / 25%);
+}
+
+.bulk-add-dialog label { display: block; margin-top: 14px; }
+.bulk-add-dialog select { width: 100%; margin-top: 5px; }
+.bulk-add-dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+
 .copyable-email {
     cursor: copy;
     color: #1d4ed8;
@@ -1841,4 +1890,46 @@ button:hover,
     .executor-intro-layout {
         grid-template-columns: 1fr;
     }
+}
+
+.login-card {
+    max-width: 420px;
+    margin: 64px auto;
+    padding: 28px;
+    background: #fff;
+    border: 1px solid #d9dee5;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+}
+
+.login-card form {
+    display: grid;
+    gap: 10px;
+}
+
+.login-card input {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 5px;
+}
+
+.login-card button,
+.logout-form button {
+    cursor: pointer;
+}
+
+.login-card button {
+    margin-top: 8px;
+    padding: 10px 16px;
+}
+
+.login-error {
+    color: #b91c1c;
+}
+
+.logout-form {
+    display: inline;
+    margin-left: 10px;
 }

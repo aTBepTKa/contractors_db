@@ -8,6 +8,7 @@ urlpatterns = [
     # Исполнители
     path("search/", views.executor_search, name="executor_search"),
     path("executors/", views.executor_list, name="executor_list"),
+    path("executors/bulk-add/", views.bulk_add_executors, name="bulk_add_executors"),
     path("executors/add/", views.executor_create, name="executor_create"),
     path("executors/<int:executor_id>/", views.executor_detail, name="executor_detail"),
     path("executors/<int:executor_id>/edit/", views.executor_update, name="executor_update"),
