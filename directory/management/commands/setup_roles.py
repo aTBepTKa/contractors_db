@@ -17,10 +17,16 @@ class Command(BaseCommand):
 
         User = get_user_model()
 
-        admins = User.objects.filter(is_superuser=True)
+        admins = User.objects.filter(is_superuser=True) | User.objects.filter(is_staff=True)
+        regular_users = User.objects.exclude(id__in=admins.values("id"))
 
         for user in admins:
             user.groups.add(admin_group)
+            user.groups.remove(user_group)
+
+        for user in regular_users:
+            user.groups.add(user_group)
+            user.groups.remove(admin_group)
 
         self.stdout.write(
             self.style.SUCCESS(
@@ -39,5 +45,8 @@ class Command(BaseCommand):
             self.stdout.write("Группа уже существовала: Пользователь")
 
         self.stdout.write(
-            f"Суперпользователи добавлены в группу Администратор: {admins.count()}"
+            f"Администраторы добавлены в группу Администратор: {admins.count()}"
+        )
+        self.stdout.write(
+            f"Обычные пользователи добавлены в группу Пользователь: {regular_users.count()}"
         )
