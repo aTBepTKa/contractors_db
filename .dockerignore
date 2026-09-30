@@ -1,0 +1,14 @@
+.git
+.env
+.env.*
+backups
+*.sql
+*.dump
+__pycache__
+*.pyc
+.venv
+staticfiles
+outputs
+node_modules
+media
+postgres_data
