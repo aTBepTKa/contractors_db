@@ -939,6 +939,10 @@ button:hover,
     display: none;
 }
 
+.executor-status-progress > select {
+    display: none;
+}
+
 .selection-status-progress {
     align-self: start;
 }

@@ -82,7 +82,16 @@
         <div class="executor-form-grid executor-form-grid-2">
             <div>
                 {{ form.status.label_tag }}
-                {{ form.status }}
+                <div class="executor-status-progress project-status-progress" role="group" aria-label="Статус исполнителя">
+                    {{ form.status }}
+                    <div class="selection-status-steps">
+                        {% for value, label in form.status.field.choices %}
+                            {% if value %}
+                                <button type="button" class="selection-status-step{% if form.status.value|stringformat:'s' == value|stringformat:'s' %} is-active{% endif %}" data-executor-status-value="{{ value }}">{{ label }}</button>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
                 {{ form.status.errors }}
             </div>
 
@@ -138,4 +147,17 @@
         <button type="submit">{{ submit_text }}</button>
     </form>
 </div>
+
+<script>
+    document.querySelectorAll("[data-executor-status-value]").forEach((button) => {
+        button.addEventListener("click", () => {
+            const wrap = button.closest(".executor-status-progress");
+            const select = wrap.querySelector("select[name='status']");
+            select.value = button.dataset.executorStatusValue;
+            wrap.querySelectorAll("[data-executor-status-value]").forEach((item) => {
+                item.classList.toggle("is-active", item === button);
+            });
+        });
+    });
+</script>
 {% endblock %}

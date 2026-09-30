@@ -8,6 +8,7 @@ from .models import (
     ObjectType,
     Project,
     ProjectSelection,
+    ProjectSpecialtyNeed,
     SelectionStatus,
     Software,
     Specialty,
@@ -140,6 +141,28 @@ class ProjectSelectionAutosaveTests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.selection.refresh_from_db()
         self.assertEqual(self.selection.project, self.project)
+
+    def test_deleting_need_removes_project_selections_for_that_specialty(self):
+        self.client.force_login(self.user)
+        need = ProjectSpecialtyNeed.objects.create(
+            project=self.project,
+            specialty=self.specialty,
+            created_by=self.user,
+        )
+        other_specialty = Specialty.objects.create(code="КР", name="Конструкции")
+        other_selection = ProjectSelection.objects.create(
+            project=self.project,
+            specialty=other_specialty,
+            executor=self.executor,
+            status=self.initial_status,
+        )
+
+        response = self.client.post(reverse("delete_project_specialty_need", kwargs={"need_id": need.id}))
+
+        self.assertRedirects(response, reverse("project_detail", kwargs={"project_id": self.project.id}), fetch_redirect_response=False)
+        self.assertFalse(ProjectSpecialtyNeed.objects.filter(id=need.id).exists())
+        self.assertFalse(ProjectSelection.objects.filter(id=self.selection.id).exists())
+        self.assertTrue(ProjectSelection.objects.filter(id=other_selection.id).exists())
 
 
 class ExecutorListTests(TestCase):

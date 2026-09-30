@@ -241,7 +241,7 @@
                             <form
                                 method="post"
                                 action="/project-specialty-needs/{{ item.need.id }}/delete/"
-                                onsubmit="return confirm('Удалить потребность по разделу? Подбор исполнителей по этому разделу не удалится.');"
+                                onsubmit="return confirm('Удалить раздел вместе со всеми исполнителями и историей переговоров по нему? Это действие нельзя отменить.');"
                                 class="inline-form"
                             >
                                 {% csrf_token %}
@@ -1162,6 +1162,15 @@
                     select.dispatchEvent(new Event("change", { bubbles: true }));
                     wrap.querySelectorAll("[data-status-value]").forEach((item) => item.classList.toggle("is-active", item === button));
                 });
+            });
+        });
+
+        document.querySelectorAll(".negotiation-add-form textarea[name='comment']").forEach((textarea) => {
+            textarea.addEventListener("keydown", (event) => {
+                if (event.key === "Enter" && !event.shiftKey) {
+                    event.preventDefault();
+                    textarea.form.requestSubmit();
+                }
             });
         });
 

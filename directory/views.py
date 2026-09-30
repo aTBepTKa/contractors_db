@@ -1240,6 +1240,11 @@ def delete_project_specialty_need(request, need_id):
     project_id = need.project.id
 
     if request.method == "POST":
-        need.delete()
+        with transaction.atomic():
+            ProjectSelection.objects.filter(
+                project_id=need.project_id,
+                specialty_id=need.specialty_id,
+            ).delete()
+            need.delete()
 
     return redirect("project_detail", project_id=project_id)
