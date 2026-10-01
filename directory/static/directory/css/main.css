@@ -1488,9 +1488,20 @@ button:hover,
 
 .project-header-card {
     display: grid;
-    gap: 14px;
+    align-content: start;
+    gap: 8px;
     height: 100%;
     box-sizing: border-box;
+}
+
+.project-header-card > p,
+.project-header-card .project-title-status,
+.project-header-card .project-header-top h1 {
+    margin: 0;
+}
+
+.project-header-card > p {
+    line-height: 1.35;
 }
 
 .project-overview-grid {
@@ -1561,7 +1572,7 @@ button:hover,
 .project-header-meta {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px 18px;
+    gap: 4px 18px;
     font-size: 14px;
     line-height: 1.4;
 }

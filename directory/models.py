@@ -77,6 +77,10 @@ class Software(models.Model):
 
 
 class Executor(models.Model):
+    status_changed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        editable=False, related_name="executor_status_changes", verbose_name="Статус изменил",
+    )
     contact_source = models.ForeignKey(
         ContactSource, verbose_name="Источник контакта", on_delete=models.PROTECT,
         null=True, blank=True, related_name="executors",

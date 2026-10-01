@@ -72,6 +72,36 @@ class ReadOnlyAccessTests(TestCase):
         self.assertEqual(self.client.get("/projects/add/").status_code, 200)
 
 
+class ExecutorStatusUpdateTests(TestCase):
+    def test_status_update_and_validation(self):
+        user = get_user_model().objects.create_user(username="status-editor")
+        initial = ExecutorStatus.objects.create(name="Активный")
+        target = ExecutorStatus.objects.create(name="Неактивный")
+        executor = Executor.objects.create(last_name="Тест", first_name="Иван", status=initial)
+        url = reverse("update_executor_status", args=[executor.pk])
+        self.assertEqual(self.client.post(url, {"status_id": target.pk}).status_code, 302)
+        self.client.force_login(user)
+        self.assertEqual(self.client.get(url).status_code, 405)
+        self.assertEqual(self.client.post(url, {"status_id": target.pk}).status_code, 200)
+        executor.refresh_from_db()
+        self.assertEqual(executor.status, target)
+        self.assertEqual(executor.status_changed_by, user)
+        self.assertEqual(self.client.post(url, {"field": "status_comment", "value": "Можно привлекать"}).status_code, 200)
+        executor.refresh_from_db()
+        self.assertEqual(executor.status_comment, "Можно привлекать")
+        self.assertEqual(executor.status_changed_by, user)
+        self.assertEqual(self.client.post(url, {"field": "status_comment", "value": ""}).status_code, 200)
+        executor.refresh_from_db()
+        self.assertEqual(executor.status_comment, "")
+        for value in ("bad", "", "999999"):
+            self.assertEqual(self.client.post(url, {"status_id": value}).status_code, 400)
+        target.is_active = False
+        target.save()
+        self.assertEqual(self.client.post(url, {"status_id": target.pk}).status_code, 400)
+        executor.refresh_from_db()
+        self.assertEqual(executor.status, target)
+
+
 class HomeAdminAccessTests(TestCase):
     def test_regular_user_has_no_admin_links_or_admin_access(self):
         user = get_user_model().objects.create_user(username="regular")
@@ -178,6 +208,18 @@ class ProjectSelectionAutosaveTests(TestCase):
         response = self.autosave("status_id", str(self.ready_status.id))
         self.assertEqual(response.json()["section_status"]["label"], "В работе")
         self.assertEqual(response.json()["approved_count"], 0)
+
+    def test_negotiation_authors_are_shown(self):
+        from .models import SelectionNegotiation
+        from django.utils import timezone
+        self.client.force_login(self.user)
+        ProjectSpecialtyNeed.objects.create(project=self.project, specialty=self.specialty)
+        author = get_user_model().objects.create_user(username="history-author", first_name="Анна", last_name="Петрова")
+        for user in (author, self.user):
+            SelectionNegotiation.objects.create(selection=self.selection, user=user, event_date=timezone.localdate(), comment="Запись переговоров")
+        response = self.client.get(reverse("project_detail", args=[self.project.pk]))
+        self.assertContains(response, "Анна Петрова")
+        self.assertContains(response, "· tester")
 
     def test_empty_offer_amount_is_saved_as_null(self):
         self.client.force_login(self.user)

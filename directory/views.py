@@ -4,6 +4,7 @@ from django.db import IntegrityError, models, transaction
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 
 from .forms import ExecutorForm, ProjectForm
 from .models import (
@@ -323,10 +324,32 @@ def executor_detail(request, executor_id):
         "selection_items": selection_items,
         "projects": Project.objects.order_by("name"),
         "executor_specialties": executor.executor_specialties.all(),
+        "executor_statuses": ExecutorStatus.objects.filter(is_active=True),
         "available_specialties": available_specialties,
     }
 
     return render(request, "directory/executor_detail.html", context)
+
+
+@login_required
+@require_POST
+def update_executor_status(request, executor_id):
+    executor = get_object_or_404(Executor, pk=executor_id)
+    if request.POST.get("field") == "status_comment":
+        executor.status_comment = request.POST.get("value", "")
+        executor.save(update_fields=["status_comment", "updated_at"])
+        return JsonResponse({"saved": True})
+    value = request.POST.get("status_id", "")
+    status = ExecutorStatus.objects.filter(pk=value, is_active=True).first() if value.isdecimal() else None
+    if status is None:
+        return JsonResponse({"saved": False, "error": "Выберите доступный статус."}, status=400)
+    if executor.status_id != status.pk:
+        executor.status = status
+        executor.status_changed_by = request.user
+        executor.save(update_fields=["status", "status_changed_by", "updated_at"])
+    author = executor.status_changed_by
+    return JsonResponse({"saved": True, "status_id": status.pk,
+                         "author": (author.get_full_name() or author.username) if author else "Не указан"})
 
 @login_required
 def project_list(request):
@@ -651,7 +674,7 @@ def project_detail(request, project_id):
 
     for selection in selections:
         negotiations = list(
-            selection.negotiations.all().order_by(
+            selection.negotiations.select_related("user").order_by(
                 "-event_date",
                 "-created_at",
             )
@@ -760,7 +783,7 @@ def project_detail(request, project_id):
             ),
         ):
             negotiations = list(
-                selection.negotiations.all().order_by(
+                selection.negotiations.select_related("user").order_by(
                     "-event_date",
                     "-created_at",
                 )
@@ -1204,6 +1227,8 @@ def executor_update(request, executor_id):
         form = ExecutorForm(request.POST, instance=executor)
 
         if form.is_valid():
+            if "status" in form.changed_data:
+                form.instance.status_changed_by = request.user
             executor = form.save()
             specialties = form.cleaned_data.get("specialties")
             update_executor_specialties(executor, specialties)

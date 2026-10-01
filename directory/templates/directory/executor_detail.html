@@ -36,8 +36,91 @@
         <h2>Статус</h2>
 
         <p><strong>Статус:</strong> {{ executor.status }}</p>
+        {% if not request.read_only %}
+        <form method="post" action="{% url 'update_executor_status' executor.id %}" id="executor-status-form">
+            {% csrf_token %}
+            <div class="selection-status-steps" role="group" aria-label="Статус исполнителя">
+                {% for status in executor_statuses %}
+                <button type="button" class="selection-status-step{% if executor.status_id == status.id %} is-active{% endif %}" data-status-id="{{ status.id }}" aria-pressed="{% if executor.status_id == status.id %}true{% else %}false{% endif %}">{{ status.name }}</button>
+                {% endfor %}
+            </div>
+            <span class="small muted" role="status" id="executor-status-feedback"></span>
+        </form>
+        <script>
+            (() => {
+                const form = document.getElementById('executor-status-form');
+                const buttons = Array.from(form.querySelectorAll('[data-status-id]'));
+                const feedback = document.getElementById('executor-status-feedback');
+                const current = form.previousElementSibling;
+                buttons.forEach(button => button.addEventListener('click', async () => {
+                    buttons.forEach(item => item.disabled = true);
+                    feedback.textContent = 'Сохранение…';
+                    const body = new FormData(form);
+                    body.set('status_id', button.dataset.statusId);
+                    try {
+                        const response = await fetch(form.action, {method: 'POST', body, headers: {'X-Requested-With': 'XMLHttpRequest'}});
+                        if (!response.ok) throw new Error('Не удалось сохранить статус. Повторите попытку.');
+                        const result = await response.json();
+                        if (!result.saved) throw new Error('Не удалось сохранить статус.');
+                        buttons.forEach(item => {
+                            const active = item.dataset.statusId === String(result.status_id);
+                            item.classList.toggle('is-active', active);
+                            item.setAttribute('aria-pressed', String(active));
+                        });
+                        current.textContent = 'Статус: ' + button.textContent;
+                        document.getElementById('status-author').textContent = result.author;
+                        feedback.textContent = 'Сохранено';
+                    } catch (error) {
+                        feedback.textContent = error.message;
+                    } finally {
+                        buttons.forEach(item => item.disabled = false);
+                    }
+                }));
+            })();
+        </script>
+        {% endif %}
 
-        {% if executor.status_comment %}
+        <p class="small muted">Статус изменил: <span id="status-author">{% if executor.status_changed_by %}{{ executor.status_changed_by.get_full_name|default:executor.status_changed_by.username }}{% else %}Не указан{% endif %}</span></p>
+        {% if not request.read_only %}
+        <label for="status-comment">Комментарий к статусу</label>
+        <textarea id="status-comment" rows="3" style="width:100%;box-sizing:border-box">{{ executor.status_comment }}</textarea>
+        <span class="small muted" id="status-comment-feedback" role="status"></span>
+        <script>
+        (() => {
+            const input = document.getElementById('status-comment');
+            const feedback = document.getElementById('status-comment-feedback');
+            const form = document.getElementById('executor-status-form');
+            let saved = input.value, timer, queue = Promise.resolve(), pending = 0;
+            function save() {
+                clearTimeout(timer);
+                const value = input.value;
+                pending++;
+                queue = queue.then(async () => {
+                    if (value === saved) return;
+                    feedback.textContent = 'Сохранение…';
+                    const body = new FormData(form);
+                    body.set('field', 'status_comment');
+                    body.set('value', value);
+                    const response = await fetch(form.action, {method: 'POST', body});
+                    if (!response.ok || !(await response.json()).saved) throw new Error();
+                    saved = value;
+                    feedback.textContent = input.value === saved ? 'Сохранено' : 'Есть несохранённые изменения';
+                }).catch(() => {
+                    feedback.textContent = 'Не удалось сохранить. Измените текст или выйдите из поля, чтобы повторить.';
+                }).finally(() => pending--);
+            }
+            input.addEventListener('input', () => {
+                feedback.textContent = 'Есть несохранённые изменения';
+                clearTimeout(timer);
+                timer = setTimeout(save, 700);
+            });
+            input.addEventListener('blur', save);
+            window.addEventListener('beforeunload', event => {
+                if (input.value !== saved || pending) { event.preventDefault(); event.returnValue = ''; }
+            });
+        })();
+        </script>
+        {% elif executor.status_comment %}
             <p>{{ executor.status_comment }}</p>
         {% else %}
             <p class="muted">Комментарий к статусу не заполнен.</p>

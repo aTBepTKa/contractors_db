@@ -153,6 +153,11 @@ class ProjectStatusAdmin(admin.ModelAdmin):
 
 @admin.register(Executor)
 class ExecutorAdmin(admin.ModelAdmin):
+    def save_model(self, request, obj, form, change):
+        if "status" in form.changed_data:
+            obj.status_changed_by = request.user
+        super().save_model(request, obj, form, change)
+
     list_display = (
         "full_name",
         "specialties_list",

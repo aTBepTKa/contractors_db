@@ -8,6 +8,19 @@
     <div class="project-header-top">
         <div>
             <h1>{{ project.name }}</h1>
+        </div>
+        <div class="project-header-actions">
+            <a class="button" href="/projects/">← К списку проектов</a>
+            <a class="button" href="/projects/{{ project.id }}/edit/">Редактировать</a>
+            {% if request.user.is_staff or request.user.is_superuser %}
+                <a class="button" href="/admin/directory/project/{{ project.id }}/change/">Открыть в админке</a>
+            {% endif %}
+        </div>
+    </div>
+            <p class="muted">
+                Карточка проекта: сведения об объекте, статус, подбор исполнителей по разделам,
+                коммерческие предложения, комментарии и история переговоров.
+            </p>
 
             <div class="project-title-status">
                 <strong>Статус проекта:</strong>
@@ -61,16 +74,6 @@
                     <strong>Изменён:</strong> {{ project.updated_at|date:"d.m.Y H:i" }}
                 </span>
             </div>
-        </div>
-
-        <div class="project-header-actions">
-            <a class="button" href="/projects/">← К списку проектов</a>
-            <a class="button" href="/projects/{{ project.id }}/edit/">Редактировать</a>
-            {% if request.user.is_staff or request.user.is_superuser %}
-                <a class="button" href="/admin/directory/project/{{ project.id }}/change/">Открыть в админке</a>
-            {% endif %}
-        </div>
-    </div>
 
     {% if project.comment %}
         <div class="project-header-comment">
@@ -318,6 +321,7 @@
                                             <div class="last-negotiation">
                                                 <div class="small muted">
                                                     {{ row.last_negotiation.event_date|date:"d.m.Y" }}
+                                                    · {{ row.last_negotiation.user.get_full_name|default:row.last_negotiation.user.username }}
                                                 </div>
 
                                                 <div>
@@ -350,6 +354,7 @@
                                                     <div class="old-negotiation">
                                                         <div class="small muted">
                                                             {{ negotiation.event_date|date:"d.m.Y" }}
+                                                            · {{ negotiation.user.get_full_name|default:negotiation.user.username }}
                                                         </div>
 
                                                         <div>
@@ -911,6 +916,7 @@
                                 <div class="last-negotiation">
                                     <div class="small muted">
                                         {{ item.last_negotiation.event_date|date:"d.m.Y" }}
+                                        · {{ item.last_negotiation.user.get_full_name|default:item.last_negotiation.user.username }}
                                     </div>
 
                                     <div>
@@ -943,6 +949,7 @@
                                         <div class="old-negotiation">
                                             <div class="small muted">
                                                 {{ negotiation.event_date|date:"d.m.Y" }}
+                                                · {{ negotiation.user.get_full_name|default:negotiation.user.username }}
                                             </div>
 
                                             <div>
