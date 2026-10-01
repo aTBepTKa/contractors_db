@@ -967,14 +967,14 @@ button:hover,
 
 .selection-status-steps {
     display: flex;
+    flex-wrap: wrap;
     width: 100%;
 }
 
 .selection-status-step {
-    flex: 1;
+    flex: 1 1 auto;
     padding: 5px 6px;
     border: 1px solid #cbd5e1;
-    border-right: none;
     background: #f8fafc;
     color: #64748b;
     font-size: 12px;

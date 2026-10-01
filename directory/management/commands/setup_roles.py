@@ -7,6 +7,7 @@ class Command(BaseCommand):
     help = "Create application user groups: Администратор and Пользователь"
 
     def handle(self, *args, **options):
+        Group.objects.get_or_create(name="Только просмотр")
         admin_group, admin_created = Group.objects.get_or_create(
             name="Администратор"
         )
@@ -18,7 +19,7 @@ class Command(BaseCommand):
         User = get_user_model()
 
         admins = User.objects.filter(is_superuser=True) | User.objects.filter(is_staff=True)
-        regular_users = User.objects.exclude(id__in=admins.values("id"))
+        regular_users = User.objects.exclude(id__in=admins.values("id")).exclude(groups__name="Только просмотр")
 
         for user in admins:
             user.groups.add(admin_group)

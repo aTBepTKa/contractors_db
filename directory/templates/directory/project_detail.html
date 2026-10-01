@@ -90,12 +90,12 @@
         </div>
 
         <div class="summary-metric">
-            <div class="summary-number">{{ closed_needs_count }}</div>
+            <div class="summary-number" data-summary-closed>{{ closed_needs_count }}</div>
             <div class="summary-label">Закрыто</div>
         </div>
 
         <div class="summary-metric">
-            <div class="summary-number">{{ needs_in_progress_count }}</div>
+            <div class="summary-number" data-summary-in-progress>{{ needs_in_progress_count }}</div>
             <div class="summary-label">В работе</div>
         </div>
 
@@ -114,6 +114,7 @@
         <div>Черновик: <strong>{{ selection_status_counters.Новый }}</strong></div>
         <div>В работе: <strong>{{ selection_status_counters.Рассматривает }}</strong></div>
         <div>Готов: <strong>{{ selection_status_counters.Готов }}</strong></div>
+        <div>Утвержден: <strong>{{ selection_status_counters.Утвержден }}</strong></div>
         <div>Отказ: <strong>{{ selection_status_counters.Отказ }}</strong></div>
     </div>
 
@@ -221,7 +222,7 @@
                             </span>
 
                             <span class="small muted">
-                                Готово: {{ item.ready_count }}
+                                Утверждено: <span data-approved-count>{{ item.ready_count }}</span>
                             </span>
 
                             <span class="small muted">
@@ -1085,6 +1086,15 @@
                 wrapper.classList.add(result.status_css_class);
             }
 
+            if (result.section_status) {
+                const section = row.closest(".work-section");
+                const badge = section.querySelector(".need-status");
+                badge.textContent = result.section_status.label;
+                badge.className = `need-status ${result.section_status.css_class}`;
+                section.querySelector("[data-approved-count]").textContent = result.approved_count;
+                document.querySelector("[data-summary-closed]").textContent = document.querySelectorAll(".work-section .need-status-closed").length;
+                document.querySelector("[data-summary-in-progress]").textContent = document.querySelectorAll(".work-section .need-status-in-progress").length;
+            }
             setStatus(row, "saved", "Сохранено");
         }
 

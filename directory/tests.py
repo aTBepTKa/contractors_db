@@ -37,6 +37,41 @@ class AuthenticationTests(TestCase):
         self.assertRedirects(response, "/", fetch_redirect_response=False)
 
 
+class ReadOnlyAccessTests(TestCase):
+    def setUp(self):
+        from django.contrib.auth.models import Group
+        self.user = get_user_model().objects.create_user(username="viewer")
+        self.user.groups.add(Group.objects.get_or_create(name="Только просмотр")[0])
+        self.client.force_login(self.user)
+
+    def test_lists_are_available(self):
+        for url in ("/", "/executors/", "/projects/"):
+            self.assertContains(self.client.get(url), "Только просмотр")
+
+    def test_all_directory_mutations_are_forbidden(self):
+        from .urls import urlpatterns
+        for pattern in urlpatterns:
+            kwargs = {name: 999999 for name in pattern.pattern.converters}
+            url = reverse(pattern.name, kwargs=kwargs)
+            for method in ("post", "put", "patch", "delete"):
+                with self.subTest(url=url, method=method):
+                    self.assertEqual(getattr(self.client, method)(url).status_code, 403)
+
+    def test_edit_pages_and_admin_are_forbidden_even_for_staff(self):
+        self.user.is_staff = True
+        self.user.save()
+        for url in ("/executors/add/", "/projects/add/", "/executors/1/edit/", "/projects/1/edit/", "/admin/"):
+            self.assertEqual(self.client.get(url).status_code, 403)
+
+    def test_logout_still_works(self):
+        self.assertEqual(self.client.post(reverse("logout")).status_code, 302)
+
+    def test_superuser_keeps_access(self):
+        self.user.is_superuser = True
+        self.user.save()
+        self.assertEqual(self.client.get("/projects/add/").status_code, 200)
+
+
 class HomeAdminAccessTests(TestCase):
     def test_regular_user_has_no_admin_links_or_admin_access(self):
         user = get_user_model().objects.create_user(username="regular")
@@ -124,6 +159,25 @@ class ProjectSelectionAutosaveTests(TestCase):
         self.selection.refresh_from_db()
         self.assertEqual(self.selection.offer_amount, 1_250_000)
         self.assertEqual(response.json()["display_value"], "1 250 000")
+
+    def test_approved_status_is_saved_and_closes_section(self):
+        from .views import get_need_status
+        self.client.force_login(self.user)
+        approved = SelectionStatus.objects.get(name="Утвержден")
+        ProjectSpecialtyNeed.objects.create(project=self.project, specialty=self.specialty)
+        response = self.autosave("status_id", str(approved.id))
+        self.assertEqual(response.status_code, 200)
+        self.selection.refresh_from_db()
+        self.assertEqual(self.selection.status, approved)
+        self.assertEqual(get_need_status([self.selection])["label"], "Закрыт")
+        page = self.client.get(reverse("project_detail", kwargs={"project_id": self.project.id}))
+        self.assertEqual(page.context["selection_status_counters"]["Утвержден"], 1)
+        self.assertContains(page, "Утвержден")
+        self.assertEqual(response.json()["section_status"]["label"], "Закрыт")
+        self.assertEqual(response.json()["approved_count"], 1)
+        response = self.autosave("status_id", str(self.ready_status.id))
+        self.assertEqual(response.json()["section_status"]["label"], "В работе")
+        self.assertEqual(response.json()["approved_count"], 0)
 
     def test_empty_offer_amount_is_saved_as_null(self):
         self.client.force_login(self.user)

@@ -47,7 +47,7 @@ def get_selection_status_css_class(status_name):
     if normalized_name == "рассматривает":
         return "selection-status-review"
 
-    if normalized_name == "готов":
+    if normalized_name in {"готов", "утвержден"}:
         return "selection-status-ready"
 
     if normalized_name == "отказ":
@@ -57,7 +57,7 @@ def get_selection_status_css_class(status_name):
 
 def get_need_status(selection_list):
     has_ready = any(
-        selection.status and selection.status.name == "Готов"
+        selection.status and selection.status.name == "Утвержден"
         for selection in selection_list
     )
 
@@ -700,6 +700,7 @@ def project_detail(request, project_id):
         "Новый": 0,
         "Рассматривает": 0,
         "Готов": 0,
+        "Утвержден": 0,
         "Отказ": 0,
         "Другие": 0,
     }
@@ -736,7 +737,7 @@ def project_detail(request, project_id):
         ready_count = sum(
             1
             for selection in need_selections
-            if selection.status and selection.status.name == "Готов"
+            if selection.status and selection.status.name == "Утвержден"
         )
 
         need_status = get_need_status(need_selections)
@@ -806,6 +807,7 @@ def project_detail(request, project_id):
         "Новый": 0,
         "Рассматривает": 0,
         "Готов": 0,
+        "Утвержден": 0,
         "Отказ": 0,
         "Другие": 0,
     }
@@ -867,6 +869,7 @@ def project_detail(request, project_id):
                 models.When(name="Рассматривает", then=1),
                 models.When(name="Отказ", then=2),
                 models.When(name="Готов", then=3),
+                models.When(name="Утвержден", then=4),
                 default=99,
                 output_field=models.IntegerField(),
             ),
@@ -948,12 +951,22 @@ def update_project_selection(request, selection_id):
             selection.status = status
             selection.save(update_fields=["status", "updated_at"])
 
+            section_selections = list(ProjectSelection.objects.filter(
+                project_id=project_id, specialty_id=selection.specialty_id,
+            ).select_related("status"))
+            section_status = get_need_status(section_selections)
+
             return JsonResponse(
                 {
                     "saved": True,
                     "field": field,
                     "value": str(status.id),
                     "status_css_class": get_selection_status_css_class(status.name),
+                    "section_status": section_status,
+                    "approved_count": sum(
+                        bool(item.status and item.status.name == "Утвержден")
+                        for item in section_selections
+                    ),
                 }
             )
 

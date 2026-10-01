@@ -6,10 +6,10 @@
 <head>
     <meta charset="UTF-8">
     <title>{% block title %}База исполнителей{% endblock %}</title>
-    <link rel="stylesheet" href="{% static 'directory/css/main.css' %}?v=20261001-header">
+    <link rel="stylesheet" href="{% static 'directory/css/main.css' %}?v=20261001-approved">
 </head>
 
-<body>
+<body{% if request.read_only %} class="read-only"{% endif %}>
     <header class="header">        
         <div class="header-inner">
             <div class="header-title">
@@ -34,7 +34,9 @@
                     {{ request.user.get_full_name|default:request.user.username }}
                 </span>
 
-                {% if request.user.is_superuser %}
+                {% if request.read_only %}
+                    <span class="user-role user-role-user">Только просмотр</span>
+                {% elif request.user.is_superuser %}
                     <span class="user-role user-role-admin">Администратор</span>
                 {% elif request.user.is_staff %}
                     <span class="user-role user-role-admin">Администратор</span>
@@ -62,6 +64,31 @@
     <main class="page">
         {% block content %}{% endblock %}
     </main>
+    {% if request.read_only %}
+    <style>
+        .read-only a[href^="/admin/"],
+        .read-only a[href$="/edit/"],
+        .read-only a[href$="/add/"],
+        .read-only #bulk-add-open,
+        .read-only .autosave-status,
+        .read-only .need-add-form,
+        .read-only .negotiation-add-form,
+        .read-only .executor-comment-form,
+        .read-only main form[method="post"] button[type="submit"]:not(.project-status-step) { display: none !important; }
+    </style>
+    <script>
+        function applyReadOnlyMode() {
+            document.querySelectorAll('main form[method="post"] input, main form[method="post"] select, main form[method="post"] textarea, main form[method="post"] button, .autosave-control, .selection-status-step, .project-status-step').forEach(function (control) {
+                control.disabled = true;
+            });
+            document.querySelectorAll('main form[method="post"]').forEach(function (form) {
+                form.addEventListener('submit', function (event) { event.preventDefault(); }, true);
+            });
+        }
+        applyReadOnlyMode();
+        document.addEventListener('DOMContentLoaded', applyReadOnlyMode);
+    </script>
+    {% endif %}
 </body>
 
 </html>
