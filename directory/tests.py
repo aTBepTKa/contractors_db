@@ -330,6 +330,25 @@ class ProjectReadySelectionsTests(TestCase):
         self.assertContains(response, 'data-ready-selection="true"')
         self.assertContains(response, 'data-ready-selection="false"')
 
+    def test_ready_toggle_includes_ready_and_approved_rows(self):
+        approved = SelectionStatus.objects.get(name="Утвержден")
+        executor = Executor.objects.create(
+            last_name="Утвержденный", first_name="Тест",
+            status=ExecutorStatus.objects.get(name="Активный"),
+        )
+        approved_selection = ProjectSelection.objects.create(
+            project=self.project, specialty=self.specialty, executor=executor,
+            status=approved,
+        )
+
+        response = self.client.get(reverse("project_detail", args=[self.project.pk]))
+
+        self.assertContains(response, 'data-ready-count>2</span>')
+        self.assertRegex(
+            response.content.decode(),
+            rf'id="selection-{approved_selection.pk}"[\s\S]*?data-ready-selection="true"[\s\S]*?hidden',
+        )
+
 
 class ExecutorListTests(TestCase):
     def setUp(self):

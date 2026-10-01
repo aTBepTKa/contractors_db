@@ -271,8 +271,8 @@
                                     class="work-selection-row {% if row.selection.executor.status.name != 'Активный' %}inactive{% endif %}"
                                     id="selection-{{ row.selection.id }}"
                                     data-autosave-url="/selections/{{ row.selection.id }}/update/"
-                                    data-ready-selection="{% if row.selection.status.name == 'Готов' %}true{% else %}false{% endif %}"
-                                    {% if row.selection.status.name == 'Готов' %}hidden{% endif %}
+                                    data-ready-selection="{% if row.selection.status.name == 'Готов' or row.selection.status.name == 'Утвержден' %}true{% else %}false{% endif %}"
+                                    {% if row.selection.status.name == 'Готов' or row.selection.status.name == 'Утвержден' %}hidden{% endif %}
                                 >
                                     <div class="work-cell work-executor">
                                         <a class="executor-name-link" href="/executors/{{ row.selection.executor.id }}/">
@@ -1098,7 +1098,7 @@
                 const wrapper = control.closest(".selection-status-wrap");
                 wrapper.classList.remove(...statusClasses);
                 wrapper.classList.add(result.status_css_class);
-                row.dataset.readySelection = result.status_name === "Готов" ? "true" : "false";
+                row.dataset.readySelection = ["Готов", "Утвержден"].includes(result.status_name) ? "true" : "false";
                 const readyToggle = row.closest(".work-section").querySelector("[data-show-ready]");
                 row.hidden = row.dataset.readySelection === "true" && !readyToggle.checked;
             }

@@ -765,7 +765,7 @@ def project_detail(request, project_id):
         ready_selection_count = sum(
             1
             for selection in need_selections
-            if selection.status and selection.status.name == "Готов"
+            if selection.status and selection.status.name in {"Готов", "Утвержден"}
         )
 
         need_status = get_need_status(need_selections)
@@ -998,7 +998,10 @@ def update_project_selection(request, selection_id):
                         for item in section_selections
                     ),
                     "ready_count": sum(
-                        bool(item.status and item.status.name == "Готов")
+                        bool(
+                            item.status
+                            and item.status.name in {"Готов", "Утвержден"}
+                        )
                         for item in section_selections
                     ),
                 }
