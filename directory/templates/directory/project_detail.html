@@ -272,7 +272,6 @@
                                     id="selection-{{ row.selection.id }}"
                                     data-autosave-url="/selections/{{ row.selection.id }}/update/"
                                     data-ready-selection="{% if row.selection.status.name == 'Готов' or row.selection.status.name == 'Утвержден' %}true{% else %}false{% endif %}"
-                                    {% if row.selection.status.name == 'Готов' or row.selection.status.name == 'Утвержден' %}hidden{% endif %}
                                 >
                                     <div class="work-cell work-executor">
                                         <a class="executor-name-link" href="/executors/{{ row.selection.executor.id }}/">
@@ -1100,7 +1099,7 @@
                 wrapper.classList.add(result.status_css_class);
                 row.dataset.readySelection = ["Готов", "Утвержден"].includes(result.status_name) ? "true" : "false";
                 const readyToggle = row.closest(".work-section").querySelector("[data-show-ready]");
-                row.hidden = row.dataset.readySelection === "true" && !readyToggle.checked;
+                row.hidden = readyToggle.checked && row.dataset.readySelection !== "true";
             }
 
             if (result.section_status) {
@@ -1162,8 +1161,8 @@
         document.querySelectorAll("[data-show-ready]").forEach((checkbox) => {
             checkbox.addEventListener("change", () => {
                 const section = checkbox.closest(".work-section");
-                section.querySelectorAll('[data-ready-selection="true"]').forEach((row) => {
-                    row.hidden = !checkbox.checked;
+                section.querySelectorAll("[data-ready-selection]").forEach((row) => {
+                    row.hidden = checkbox.checked && row.dataset.readySelection !== "true";
                 });
             });
         });

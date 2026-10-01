@@ -322,13 +322,14 @@ class ProjectReadySelectionsTests(TestCase):
                 project=self.project, specialty=self.specialty, executor=executor, status=status,
             )
 
-    def test_each_section_has_ready_toggle_and_ready_rows_start_hidden(self):
+    def test_each_section_has_ready_toggle_and_status_markers(self):
         response = self.client.get(reverse("project_detail", args=[self.project.pk]))
 
         self.assertContains(response, "Показать готовых")
         self.assertContains(response, 'data-ready-count>1</span>')
         self.assertContains(response, 'data-ready-selection="true"')
         self.assertContains(response, 'data-ready-selection="false"')
+        self.assertNotContains(response, 'data-ready-selection="true" hidden')
 
     def test_ready_toggle_includes_ready_and_approved_rows(self):
         approved = SelectionStatus.objects.get(name="Утвержден")
@@ -346,7 +347,7 @@ class ProjectReadySelectionsTests(TestCase):
         self.assertContains(response, 'data-ready-count>2</span>')
         self.assertRegex(
             response.content.decode(),
-            rf'id="selection-{approved_selection.pk}"[\s\S]*?data-ready-selection="true"[\s\S]*?hidden',
+            rf'id="selection-{approved_selection.pk}"[\s\S]*?data-ready-selection="true"',
         )
 
 
