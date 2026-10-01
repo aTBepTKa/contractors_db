@@ -59,6 +59,14 @@ class ProjectSelectionForm(forms.ModelForm):
 
 from .models import EmploymentType, ExecutorStatus
 
+
+class FullNameModelChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, user):
+        full_name = " ".join(
+            part for part in (user.last_name, user.first_name) if part
+        ).strip()
+        return full_name or "Не указано"
+
 class ExecutorForm(forms.ModelForm):
     specialties = forms.ModelMultipleChoiceField(
         label="Специальности",
@@ -132,6 +140,11 @@ class ExecutorForm(forms.ModelForm):
         self.fields["general_comment"].widget = forms.Textarea(attrs={"rows": 4})
 
 class ProjectForm(forms.ModelForm):
+    chief_project_engineer = FullNameModelChoiceField(
+        label="ГИП",
+        queryset=get_user_model().objects.none(),
+    )
+
     class Meta:
         model = Project
         fields = (

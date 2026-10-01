@@ -1461,6 +1461,20 @@ button:hover,
     gap: 6px;
 }
 
+.show-ready-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: #475569;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.show-ready-toggle input {
+    margin: 0;
+}
+
 .summary-metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 6px;

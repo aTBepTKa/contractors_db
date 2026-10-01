@@ -762,6 +762,11 @@ def project_detail(request, project_id):
             for selection in need_selections
             if selection.status and selection.status.name == "Утвержден"
         )
+        ready_selection_count = sum(
+            1
+            for selection in need_selections
+            if selection.status and selection.status.name == "Готов"
+        )
 
         need_status = get_need_status(need_selections)
 
@@ -815,6 +820,7 @@ def project_detail(request, project_id):
             "selection_rows": selection_rows,
             "selections_count": len(need_selections),
             "ready_count": ready_count,
+            "ready_selection_count": ready_selection_count,
             "min_offer_amount": format_money(min_offer_amount),
             "max_offer_amount": format_money(max_offer_amount),
             "status_label": need_status["label"],
@@ -985,9 +991,14 @@ def update_project_selection(request, selection_id):
                     "field": field,
                     "value": str(status.id),
                     "status_css_class": get_selection_status_css_class(status.name),
+                    "status_name": status.name,
                     "section_status": section_status,
                     "approved_count": sum(
                         bool(item.status and item.status.name == "Утвержден")
+                        for item in section_selections
+                    ),
+                    "ready_count": sum(
+                        bool(item.status and item.status.name == "Готов")
                         for item in section_selections
                     ),
                 }

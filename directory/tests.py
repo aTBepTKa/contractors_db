@@ -2,6 +2,8 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
+from .forms import ProjectForm
+
 from .models import (
     Executor,
     ExecutorStatus,
@@ -179,6 +181,8 @@ class ProjectSelectionAutosaveTests(TestCase):
         self.selection.refresh_from_db()
         self.assertEqual(self.selection.status, self.ready_status)
         self.assertEqual(response.json()["status_css_class"], "selection-status-ready")
+        self.assertEqual(response.json()["status_name"], "Готов")
+        self.assertEqual(response.json()["ready_count"], 1)
 
     def test_offer_amount_is_saved_and_formatted(self):
         self.client.force_login(self.user)
@@ -280,6 +284,51 @@ class ProjectSelectionAutosaveTests(TestCase):
         self.assertFalse(ProjectSpecialtyNeed.objects.filter(id=need.id).exists())
         self.assertFalse(ProjectSelection.objects.filter(id=self.selection.id).exists())
         self.assertTrue(ProjectSelection.objects.filter(id=other_selection.id).exists())
+
+
+class ProjectFormTests(TestCase):
+    def test_chief_project_engineer_choices_use_last_and_first_name(self):
+        named = get_user_model().objects.create_user(
+            username="login-name",
+            first_name="Иван",
+            last_name="Петров",
+        )
+        unnamed = get_user_model().objects.create_user(username="technical-login")
+
+        choices = dict(ProjectForm().fields["chief_project_engineer"].choices)
+
+        self.assertEqual(choices[named.pk], "Петров Иван")
+        self.assertEqual(choices[unnamed.pk], "Не указано")
+        self.assertNotIn("login-name", choices.values())
+        self.assertNotIn("technical-login", choices.values())
+
+
+class ProjectReadySelectionsTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(username="project-viewer")
+        self.client.force_login(self.user)
+        object_type = ObjectType.objects.create(name="Объект")
+        self.project = Project.objects.create(name="Проект", object_type=object_type)
+        self.specialty = Specialty.objects.create(code="ОВ", name="Вентиляция")
+        ProjectSpecialtyNeed.objects.create(project=self.project, specialty=self.specialty)
+        executor_status = ExecutorStatus.objects.create(name="Активный")
+        ready = SelectionStatus.objects.create(name="Готов")
+        new = SelectionStatus.objects.create(name="Новый")
+        for index, status in enumerate((ready, new), 1):
+            executor = Executor.objects.create(
+                last_name=f"Исполнитель{index}", first_name="Тест", status=executor_status,
+            )
+            ProjectSelection.objects.create(
+                project=self.project, specialty=self.specialty, executor=executor, status=status,
+            )
+
+    def test_each_section_has_ready_toggle_and_ready_rows_start_hidden(self):
+        response = self.client.get(reverse("project_detail", args=[self.project.pk]))
+
+        self.assertContains(response, "Показать готовых")
+        self.assertContains(response, 'data-ready-count>1</span>')
+        self.assertContains(response, 'data-ready-selection="true"')
+        self.assertContains(response, 'data-ready-selection="false"')
 
 
 class ExecutorListTests(TestCase):

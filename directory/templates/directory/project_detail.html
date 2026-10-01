@@ -228,6 +228,11 @@
                                 Утверждено: <span data-approved-count>{{ item.ready_count }}</span>
                             </span>
 
+                            <label class="show-ready-toggle">
+                                <input type="checkbox" data-show-ready>
+                                Показать готовых (<span data-ready-count>{{ item.ready_selection_count }}</span>)
+                            </label>
+
                             <span class="small muted">
                                 КП:
                                 {% if item.min_offer_amount %}
@@ -266,6 +271,8 @@
                                     class="work-selection-row {% if row.selection.executor.status.name != 'Активный' %}inactive{% endif %}"
                                     id="selection-{{ row.selection.id }}"
                                     data-autosave-url="/selections/{{ row.selection.id }}/update/"
+                                    data-ready-selection="{% if row.selection.status.name == 'Готов' %}true{% else %}false{% endif %}"
+                                    {% if row.selection.status.name == 'Готов' %}hidden{% endif %}
                                 >
                                     <div class="work-cell work-executor">
                                         <a class="executor-name-link" href="/executors/{{ row.selection.executor.id }}/">
@@ -1091,6 +1098,9 @@
                 const wrapper = control.closest(".selection-status-wrap");
                 wrapper.classList.remove(...statusClasses);
                 wrapper.classList.add(result.status_css_class);
+                row.dataset.readySelection = result.status_name === "Готов" ? "true" : "false";
+                const readyToggle = row.closest(".work-section").querySelector("[data-show-ready]");
+                row.hidden = row.dataset.readySelection === "true" && !readyToggle.checked;
             }
 
             if (result.section_status) {
@@ -1099,6 +1109,7 @@
                 badge.textContent = result.section_status.label;
                 badge.className = `need-status ${result.section_status.css_class}`;
                 section.querySelector("[data-approved-count]").textContent = result.approved_count;
+                section.querySelector("[data-ready-count]").textContent = result.ready_count;
                 document.querySelector("[data-summary-closed]").textContent = document.querySelectorAll(".work-section .need-status-closed").length;
                 document.querySelector("[data-summary-in-progress]").textContent = document.querySelectorAll(".work-section .need-status-in-progress").length;
             }
@@ -1145,6 +1156,15 @@
                     timer = setTimeout(enqueue, 900);
                 });
                 control.addEventListener("blur", enqueue);
+            });
+        });
+
+        document.querySelectorAll("[data-show-ready]").forEach((checkbox) => {
+            checkbox.addEventListener("change", () => {
+                const section = checkbox.closest(".work-section");
+                section.querySelectorAll('[data-ready-selection="true"]').forEach((row) => {
+                    row.hidden = !checkbox.checked;
+                });
             });
         });
 
