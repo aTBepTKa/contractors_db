@@ -50,6 +50,7 @@
         </div>
     </a>
 
+    {% if request.user.is_staff or request.user.is_superuser %}
     <a class="tile" href="/admin/">
         <div class="tile-title">Админка</div>
         <div class="tile-description">
@@ -57,5 +58,6 @@
             и ручного редактирования данных.
         </div>
     </a>
+    {% endif %}
 </div>
 {% endblock %}

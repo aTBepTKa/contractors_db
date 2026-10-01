@@ -37,6 +37,27 @@ class AuthenticationTests(TestCase):
         self.assertRedirects(response, "/", fetch_redirect_response=False)
 
 
+class HomeAdminAccessTests(TestCase):
+    def test_regular_user_has_no_admin_links_or_admin_access(self):
+        user = get_user_model().objects.create_user(username="regular")
+        self.client.force_login(user)
+        response = self.client.get("/")
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'href="/admin/"')
+        self.assertRedirects(
+            self.client.get("/admin/"),
+            "/admin/login/?next=/admin/",
+            fetch_redirect_response=False,
+        )
+
+    def test_admin_users_see_admin_tile(self):
+        for flag in ("is_staff", "is_superuser"):
+            with self.subTest(flag=flag):
+                user = get_user_model().objects.create_user(username=flag, **{flag: True})
+                self.client.force_login(user)
+                self.assertContains(self.client.get("/"), '<div class="tile-title">Админка</div>')
+
+
 class ProjectSelectionAutosaveTests(TestCase):
     def setUp(self):
         self.user = get_user_model().objects.create_user(
