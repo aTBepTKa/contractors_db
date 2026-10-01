@@ -1,6 +1,8 @@
 """Validate or import the prepared UTF-8 CSV. Existing executors are never overwritten."""
 import csv
 from pathlib import Path
+from xml.etree import ElementTree
+from zipfile import BadZipFile, ZipFile
 
 from django.core.exceptions import ValidationError
 from django.core.management.base import BaseCommand, CommandError
@@ -18,8 +20,81 @@ FIELDS = {
     "Город / местоположение": "city", "Комментарий по ПО": "software_comment",
     "Общий комментарий": "general_comment",
 }
-HEADERS = set(FIELDS) | {"№ исходной записи", "Тип занятости", "Статус", "Источник контакта",
-                          "Начал работать с", "Год рождения", "ПО", "Специальности"}
+HEADERS = (
+    "№ исходной записи", "Фамилия", "Имя", "Отчество", "Телефон", "Почта",
+    "Тип занятости", "Статус", "Источник контакта", "Комментарий к источнику",
+    "Город / местоположение", "Начал работать с", "Год рождения", "ПО",
+    "Комментарий по ПО", "Специальности", "Общий комментарий",
+)
+
+
+def read_xlsx(path):
+    """Read plain cell values from the 'Для импорта' worksheet without optional packages."""
+    main_ns = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
+    rel_ns = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+    package_ns = "http://schemas.openxmlformats.org/package/2006/relationships"
+    with ZipFile(path) as archive:
+        shared = []
+        if "xl/sharedStrings.xml" in archive.namelist():
+            root = ElementTree.fromstring(archive.read("xl/sharedStrings.xml"))
+            shared = ["".join(node.text or "" for node in item.iter(f"{{{main_ns}}}t"))
+                      for item in root.findall(f"{{{main_ns}}}si")]
+        workbook = ElementTree.fromstring(archive.read("xl/workbook.xml"))
+        sheet = next((item for item in workbook.findall(f".//{{{main_ns}}}sheet")
+                      if item.attrib.get("name") == "Для импорта"), None)
+        if sheet is None:
+            raise ValueError("В книге нет листа «Для импорта»")
+        relation_id = sheet.attrib[f"{{{rel_ns}}}id"]
+        rels = ElementTree.fromstring(archive.read("xl/_rels/workbook.xml.rels"))
+        target = next(item.attrib["Target"] for item in rels.findall(f"{{{package_ns}}}Relationship")
+                      if item.attrib["Id"] == relation_id)
+        sheet_path = "xl/" + target.lstrip("/") if not target.startswith("xl/") else target
+        root = ElementTree.fromstring(archive.read(sheet_path))
+        result = []
+        for row in root.findall(f".//{{{main_ns}}}row"):
+            values = [""] * len(HEADERS)
+            for cell in row.findall(f"{{{main_ns}}}c"):
+                if cell.find(f"{{{main_ns}}}f") is not None:
+                    raise ValueError("Формулы на листе «Для импорта» не поддерживаются")
+                reference = cell.attrib.get("r", "")
+                letters = "".join(char for char in reference if char.isalpha())
+                column = 0
+                for char in letters:
+                    column = column * 26 + ord(char.upper()) - 64
+                column -= 1
+                if not 0 <= column < len(HEADERS):
+                    continue
+                kind = cell.attrib.get("t")
+                if kind == "inlineStr":
+                    value = "".join(node.text or "" for node in cell.iter(f"{{{main_ns}}}t"))
+                else:
+                    node = cell.find(f"{{{main_ns}}}v")
+                    value = "" if node is None else (node.text or "")
+                    if kind == "s" and value:
+                        value = shared[int(value)]
+                values[column] = value
+            result.append(values)
+    if not result:
+        return [], []
+    headers = [str(value).strip() for value in result[0]]
+    rows = [dict(zip(headers, map(str, values))) for values in result[1:] if any(str(v).strip() for v in values)]
+    return headers, rows
+
+
+def read_input(path):
+    if path.suffix.lower() == ".xlsx":
+        try:
+            return read_xlsx(path)
+        except (BadZipFile, KeyError, ElementTree.ParseError, StopIteration, ValueError) as exc:
+            raise CommandError(f"Не удалось прочитать Excel: {exc}") from exc
+    if path.suffix.lower() != ".csv":
+        raise CommandError("Поддерживаются файлы .xlsx и .csv")
+    try:
+        with path.open(encoding="utf-8-sig", newline="") as stream:
+            reader = csv.DictReader(stream, delimiter=";")
+            return reader.fieldnames or [], [row for row in reader if any((v or "").strip() for v in row.values())]
+    except (OSError, UnicodeError, csv.Error) as exc:
+        raise CommandError(str(exc)) from exc
 
 
 def lookup(model, value, key="name", optional=False):
@@ -80,14 +155,9 @@ class Command(BaseCommand):
         parser.add_argument("--apply", action="store_true")
 
     def handle(self, *args, **options):
-        try:
-            with options["path"].open(encoding="utf-8-sig", newline="") as stream:
-                reader = csv.DictReader(stream, delimiter=";")
-                if not reader.fieldnames or set(reader.fieldnames) != HEADERS or len(reader.fieldnames) != len(HEADERS):
-                    raise CommandError("Неверный набор столбцов CSV")
-                rows = list(reader)
-        except (OSError, UnicodeError, csv.Error) as exc:
-            raise CommandError(str(exc)) from exc
+        fieldnames, rows = read_input(options["path"])
+        if list(fieldnames) != list(HEADERS):
+            raise CommandError("Неверный набор или порядок столбцов")
         if not rows:
             raise CommandError("Файл не содержит исполнителей")
         with transaction.atomic():

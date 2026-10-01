@@ -30,7 +30,7 @@ class ExecutorImportTests(TestCase):
 
     def write_rows(self, rows):
         with self.path.open("w", encoding="utf-8-sig", newline="") as stream:
-            writer = csv.DictWriter(stream, fieldnames=sorted(HEADERS), delimiter=";")
+            writer = csv.DictWriter(stream, fieldnames=HEADERS, delimiter=";")
             writer.writeheader()
             writer.writerows(rows)
 
