@@ -2,13 +2,14 @@ import csv
 from io import StringIO
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from zipfile import ZIP_DEFLATED, ZipFile
 
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.test import TestCase
 
 from .forms import ExecutorForm
-from .management.commands.import_executors import HEADERS
+from .management.commands.import_executors import HEADERS, read_xlsx
 from .models import EmploymentType, Executor, ExecutorStatus, Specialty
 
 
@@ -33,6 +34,38 @@ class ExecutorImportTests(TestCase):
             writer = csv.DictWriter(stream, fieldnames=HEADERS, delimiter=";")
             writer.writeheader()
             writer.writerows(rows)
+
+    def test_xlsx_absolute_sheet_target_is_supported(self):
+        path = Path(self.temp.name) / "template.xlsx"
+        header_cells = "".join(
+            f'<c r="{chr(65 + index)}1" t="inlineStr"><is><t>{value}</t></is></c>'
+            for index, value in enumerate(HEADERS)
+        )
+        with ZipFile(path, "w", ZIP_DEFLATED) as archive:
+            archive.writestr(
+                "xl/workbook.xml",
+                '<?xml version="1.0" encoding="UTF-8"?>'
+                '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" '
+                'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+                '<sheets><sheet name="Для импорта" sheetId="1" r:id="rId1"/></sheets></workbook>',
+            )
+            archive.writestr(
+                "xl/_rels/workbook.xml.rels",
+                '<?xml version="1.0" encoding="UTF-8"?>'
+                '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+                '<Relationship Id="rId1" '
+                'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" '
+                'Target="/xl/worksheets/sheet1.xml"/></Relationships>',
+            )
+            archive.writestr(
+                "xl/worksheets/sheet1.xml",
+                '<?xml version="1.0" encoding="UTF-8"?>'
+                '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+                f'<sheetData><row r="1">{header_cells}</row></sheetData></worksheet>',
+            )
+        headers, rows = read_xlsx(path)
+        self.assertEqual(headers, list(HEADERS))
+        self.assertEqual(rows, [])
 
     def test_dry_run_does_not_create_executors(self):
         self.write_rows([self.row])

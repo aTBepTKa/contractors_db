@@ -48,7 +48,8 @@ def read_xlsx(path):
         rels = ElementTree.fromstring(archive.read("xl/_rels/workbook.xml.rels"))
         target = next(item.attrib["Target"] for item in rels.findall(f"{{{package_ns}}}Relationship")
                       if item.attrib["Id"] == relation_id)
-        sheet_path = "xl/" + target.lstrip("/") if not target.startswith("xl/") else target
+        normalized_target = target.lstrip("/")
+        sheet_path = normalized_target if normalized_target.startswith("xl/") else "xl/" + normalized_target
         root = ElementTree.fromstring(archive.read(sheet_path))
         result = []
         for row in root.findall(f".//{{{main_ns}}}row"):
