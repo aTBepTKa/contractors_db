@@ -19,7 +19,7 @@ a:hover {
 }
 
 .page {
-    max-width: 1320px;
+    width: 100%;
     margin: 0 auto;
     padding: 28px;
 }
@@ -30,7 +30,7 @@ a:hover {
 }
 
 .header-inner {
-    max-width: 1320px;
+    width: 100%;
     margin: 0 auto;
     padding: 12px 28px;
     display: grid;
@@ -84,7 +84,7 @@ a:hover {
 }
 
 .page-messages {
-    max-width: 1320px;
+    width: 100%;
     margin: 12px auto 0;
     padding: 0 28px;
 }
