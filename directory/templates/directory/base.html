@@ -6,14 +6,17 @@
 <head>
     <meta charset="UTF-8">
     <title>{% block title %}База исполнителей{% endblock %}</title>
-    <link rel="stylesheet" href="{% static 'directory/css/main.css' %}?v=20260903-15">
+    <link rel="stylesheet" href="{% static 'directory/css/main.css' %}?v=20261001-header">
 </head>
 
 <body>
     <header class="header">        
         <div class="header-inner">
             <div class="header-title">
-                <a href="/">База исполнителей</a>
+                <a class="header-brand" href="/">
+                    <img class="header-logo" src="{% static 'directory/images/company-logo.svg' %}" alt="Вектор Проект" width="256" height="48">
+                    <span>База исполнителей</span>
+                </a>
             </div>
 
             <nav class="header-nav">
@@ -25,8 +28,6 @@
                     <a href="/admin/">Админка</a>
                 {% endif %}
             </nav>
-        </div>
-
         <div class="header-user">
             {% if request.user.is_authenticated %}
                 <span>
@@ -46,6 +47,7 @@
                     <button type="submit">Выйти</button>
                 </form>
             {% endif %}
+        </div>
         </div>
     </header>
 
