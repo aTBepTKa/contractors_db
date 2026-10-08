@@ -2009,3 +2009,36 @@ button:hover,
         margin-top: 8px;
     }
 }
+.executor-page-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.import-upload-form {
+    display: flex;
+    align-items: end;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.import-upload-form input[type="file"] {
+    min-width: 320px;
+}
+
+.import-preview-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 12px;
+}
+
+.import-preview-heading h2 {
+    margin-bottom: 4px;
+}
+
+.import-preview-table-wrap {
+    max-height: 65vh;
+}

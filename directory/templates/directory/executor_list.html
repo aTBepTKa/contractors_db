@@ -8,7 +8,11 @@
         <div>
             <h1>Исполнители</h1>
             <p class="muted">Общий список исполнителей с автоматической фильтрацией по специальности, ПО, статусу и контактам.</p>
-            <p><a class="button" href="/executors/add/">Добавить исполнителя</a></p>
+            <div class="executor-page-actions">
+                <a class="button" href="/executors/add/">Добавить исполнителя</a>
+                <a class="button secondary-button" href="{% url 'executor_import_template' %}">Скачать шаблон</a>
+                {% if not request.read_only %}<a class="button secondary-button" href="{% url 'executor_import' %}">Массовый импорт</a>{% endif %}
+            </div>
         </div>
 
         <div class="executor-mini-stats">

@@ -50,6 +50,11 @@ class ReadOnlyAccessTests(TestCase):
         for url in ("/", "/executors/", "/projects/"):
             self.assertContains(self.client.get(url), "Только просмотр")
 
+    def test_read_only_user_can_download_import_template_but_not_open_import(self):
+        self.assertEqual(self.client.get(reverse("executor_import_template")).status_code, 200)
+        self.assertEqual(self.client.get(reverse("executor_import")).status_code, 403)
+        self.assertNotContains(self.client.get(reverse("executor_list")), "Массовый импорт")
+
     def test_all_directory_mutations_are_forbidden(self):
         from .urls import urlpatterns
         for pattern in urlpatterns:

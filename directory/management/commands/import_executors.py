@@ -84,10 +84,7 @@ def read_xlsx(path):
 
 def read_input(path):
     if path.suffix.lower() == ".xlsx":
-        try:
-            return read_xlsx(path)
-        except (BadZipFile, KeyError, ElementTree.ParseError, StopIteration, ValueError) as exc:
-            raise CommandError(f"Не удалось прочитать Excel: {exc}") from exc
+        return read_xlsx_safe(path)
     if path.suffix.lower() != ".csv":
         raise CommandError("Поддерживаются файлы .xlsx и .csv")
     try:
@@ -96,6 +93,13 @@ def read_input(path):
             return reader.fieldnames or [], [row for row in reader if any((v or "").strip() for v in row.values())]
     except (OSError, UnicodeError, csv.Error) as exc:
         raise CommandError(str(exc)) from exc
+
+
+def read_xlsx_safe(source):
+    try:
+        return read_xlsx(source)
+    except (BadZipFile, KeyError, IndexError, ElementTree.ParseError, StopIteration, ValueError) as exc:
+        raise CommandError(f"Не удалось прочитать Excel: {exc}") from exc
 
 
 def lookup(model, value, key="name", optional=False):
@@ -148,6 +152,14 @@ def validate_rows(rows):
     return prepared
 
 
+def save_prepared(prepared):
+    for obj, programs, specialties in prepared:
+        obj.save()
+        obj.software.set(programs)
+        for specialty in set(specialties):
+            ExecutorSpecialty.objects.create(executor=obj, specialty=specialty)
+
+
 class Command(BaseCommand):
     help = "Проверить подготовленный CSV; --apply сохраняет исполнителей одной транзакцией."
 
@@ -167,10 +179,6 @@ class Command(BaseCommand):
                 list(ExecutorStatus.objects.select_for_update().order_by("pk"))
             prepared = validate_rows(rows)
             if options["apply"]:
-                for obj, programs, specialties in prepared:
-                    obj.save()
-                    obj.software.set(programs)
-                    for specialty in set(specialties):
-                        ExecutorSpecialty.objects.create(executor=obj, specialty=specialty)
+                save_prepared(prepared)
         verb = "Импортировано" if options["apply"] else "Проверено без записи в базу"
         self.stdout.write(self.style.SUCCESS(f"{verb}: {len(prepared)} исполнителей."))

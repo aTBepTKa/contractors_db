@@ -1,10 +1,15 @@
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.conf import settings
+from django.core.management.base import CommandError
 from django.db import IntegrityError, models, transaction
-from django.http import JsonResponse
+from django.http import FileResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
+from pathlib import Path
+
+from .management.commands.import_executors import HEADERS, read_xlsx_safe, save_prepared, validate_rows
 
 from .forms import ExecutorForm, ProjectForm
 from .models import (
@@ -82,6 +87,81 @@ def get_need_status(selection_list):
 @login_required
 def executor_search(request):
     return redirect("executor_list")
+
+
+@login_required
+def executor_import_template(request):
+    path = Path(settings.BASE_DIR) / "directory" / "static" / "directory" / "files" / "executor_import_template.xlsx"
+    return FileResponse(
+        path.open("rb"),
+        as_attachment=True,
+        filename="Шаблон_импорта_исполнителей.xlsx",
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+
+
+@login_required
+def executor_import(request):
+    context = {}
+    if request.method == "POST":
+        upload = request.FILES.get("file")
+        if not upload:
+            context["error"] = "Выберите Excel-файл для проверки."
+        elif not upload.name.lower().endswith(".xlsx"):
+            context["error"] = "Поддерживаются только файлы XLSX."
+        elif upload.size > 10 * 1024 * 1024:
+            context["error"] = "Размер файла не должен превышать 10 МБ."
+        else:
+            try:
+                fieldnames, rows = read_xlsx_safe(upload)
+                if list(fieldnames) != list(HEADERS):
+                    raise CommandError("Неверный набор или порядок столбцов.")
+                if not rows:
+                    raise CommandError("Файл не содержит исполнителей.")
+                prepared = validate_rows(rows)
+                request.session["executor_import_rows"] = rows
+                context["preview_rows"] = [
+                    {
+                        "source_id": row["№ исходной записи"],
+                        "name": " ".join(filter(None, [row["Фамилия"], row["Имя"], row["Отчество"]])),
+                        "phone": row["Телефон"],
+                        "email": row["Почта"],
+                        "status": row["Статус"],
+                        "source": row["Источник контакта"],
+                        "software": row["ПО"],
+                        "specialties": row["Специальности"],
+                    }
+                    for row in rows
+                ]
+                context["preview_count"] = len(prepared)
+            except CommandError as exc:
+                request.session.pop("executor_import_rows", None)
+                context["error"] = str(exc)
+    return render(request, "directory/executor_import.html", context)
+
+
+@login_required
+@require_POST
+def executor_import_confirm(request):
+    rows = request.session.get("executor_import_rows")
+    if not rows:
+        messages.error(request, "Нет проверенного файла для импорта. Загрузите файл повторно.")
+        return redirect("executor_import")
+    try:
+        with transaction.atomic():
+            list(ExecutorStatus.objects.select_for_update().order_by("pk"))
+            prepared = validate_rows(rows)
+            save_prepared(prepared)
+        request.session.pop("executor_import_rows", None)
+        messages.success(request, f"Импортировано исполнителей: {len(prepared)}.")
+        return redirect("executor_list")
+    except CommandError as exc:
+        request.session.pop("executor_import_rows", None)
+        return render(
+            request,
+            "directory/executor_import.html",
+            {"error": f"Импорт отменён: {exc}"},
+        )
 
 @login_required
 def bulk_add_executors(request):

@@ -1,0 +1,58 @@
+{% extends "directory/base.html" %}
+
+{% block title %}Массовый импорт исполнителей{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>Массовый импорт исполнителей</h1>
+    <p class="muted">Загрузите заполненный шаблон XLSX. До подтверждения база данных не изменяется.</p>
+    <div class="executor-page-actions">
+        <a class="button secondary-button" href="{% url 'executor_list' %}">← К исполнителям</a>
+        <a class="button secondary-button" href="{% url 'executor_import_template' %}">Скачать шаблон</a>
+    </div>
+</div>
+
+<div class="card import-upload-card">
+    <h2>Проверить файл</h2>
+    {% if error %}<div class="form-errors">{{ error|linebreaksbr }}</div>{% endif %}
+    <form method="post" enctype="multipart/form-data" class="import-upload-form">
+        {% csrf_token %}
+        <label for="executor-import-file">Файл XLSX</label>
+        <input id="executor-import-file" type="file" name="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required>
+        <button type="submit">Проверить</button>
+    </form>
+</div>
+
+{% if preview_rows %}
+<div class="card">
+    <div class="import-preview-heading">
+        <div>
+            <h2>Будет добавлено: {{ preview_count }}</h2>
+            <p class="muted">Проверьте записи. При подтверждении все строки импортируются одной операцией.</p>
+        </div>
+        <form method="post" action="{% url 'executor_import_confirm' %}">
+            {% csrf_token %}
+            <button type="submit">Подтвердить импорт</button>
+        </form>
+    </div>
+    <div class="table-wrap import-preview-table-wrap">
+        <table>
+            <thead><tr><th>№</th><th>ФИО</th><th>Контакты</th><th>Статус</th><th>Источник</th><th>ПО</th><th>Специальности</th></tr></thead>
+            <tbody>
+                {% for row in preview_rows %}
+                <tr>
+                    <td>{{ row.source_id }}</td>
+                    <td>{{ row.name }}</td>
+                    <td>{{ row.phone|default:"—" }}{% if row.email %}<br>{{ row.email }}{% endif %}</td>
+                    <td>{{ row.status }}</td>
+                    <td>{{ row.source|default:"—" }}</td>
+                    <td>{{ row.software|default:"—" }}</td>
+                    <td>{{ row.specialties|default:"—" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
