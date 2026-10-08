@@ -150,7 +150,7 @@ def executor_import_confirm(request):
         with transaction.atomic():
             list(ExecutorStatus.objects.select_for_update().order_by("pk"))
             prepared = validate_rows(rows)
-            save_prepared(prepared)
+            save_prepared(prepared, created_by=request.user)
         request.session.pop("executor_import_rows", None)
         messages.success(request, f"Импортировано исполнителей: {len(prepared)}.")
         return redirect("executor_list")
@@ -344,7 +344,7 @@ def executor_list(request):
 def executor_detail(request, executor_id):
     executor = get_object_or_404(
         Executor.objects
-        .select_related("status", "employment_type")
+        .select_related("status", "employment_type", "created_by")
         .prefetch_related(
             "executor_specialties__specialty",
             "software",
@@ -1249,6 +1249,7 @@ def executor_create(request):
         form = ExecutorForm(request.POST)
 
         if form.is_valid():
+            form.instance.created_by = request.user
             executor = form.save()
             specialties = form.cleaned_data.get("specialties")
             update_executor_specialties(executor, specialties)

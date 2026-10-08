@@ -170,8 +170,9 @@ def validate_rows(rows):
     return prepared
 
 
-def save_prepared(prepared):
+def save_prepared(prepared, created_by=None):
     for obj, programs, specialties in prepared:
+        obj.created_by = created_by
         obj.save()
         obj.software.set(programs)
         for specialty in set(specialties):

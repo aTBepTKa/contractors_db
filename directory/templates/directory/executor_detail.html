@@ -10,6 +10,11 @@
         Карточка исполнителя: контакты, специальности, статус, ПО, комментарии и история участия в проектах.
     </p>
 
+    <p class="small muted">
+        <strong>Добавил:</strong> {% if executor.created_by %}{{ executor.created_by.get_full_name|default:executor.created_by.username }}{% else %}Не указано{% endif %}<br>
+        <strong>Дата добавления:</strong> {{ executor.created_at|date:"d.m.Y H:i" }}
+    </p>
+
     <p>
         <a class="button" href="/executors/">← К списку исполнителей</a>
         <a class="button" href="/executors/{{ executor.id }}/edit/">Редактировать</a>

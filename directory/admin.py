@@ -154,6 +154,8 @@ class ProjectStatusAdmin(admin.ModelAdmin):
 @admin.register(Executor)
 class ExecutorAdmin(admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
+        if not change and not obj.created_by_id:
+            obj.created_by = request.user
         if "status" in form.changed_data:
             obj.status_changed_by = request.user
         super().save_model(request, obj, form, change)

@@ -77,6 +77,10 @@ class Software(models.Model):
 
 
 class Executor(models.Model):
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True,
+        editable=False, related_name="created_executors", verbose_name="Добавил",
+    )
     status_changed_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
         editable=False, related_name="executor_status_changes", verbose_name="Статус изменил",

@@ -185,7 +185,8 @@ class ExecutorImportViewTests(ExecutorImportTests):
         result = self.client.post(reverse("executor_import_confirm"))
 
         self.assertRedirects(result, reverse("executor_list"), fetch_redirect_response=False)
-        self.assertEqual(Executor.objects.count(), 1)
+        executor = Executor.objects.get()
+        self.assertEqual(executor.created_by, self.user)
         self.assertNotIn("executor_import_rows", self.client.session)
 
     def test_duplicate_is_rejected_before_preview(self):

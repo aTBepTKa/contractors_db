@@ -109,6 +109,36 @@ class ExecutorStatusUpdateTests(TestCase):
         self.assertEqual(executor.status, target)
 
 
+class ExecutorCreationMetadataTests(TestCase):
+    def test_creator_and_creation_time_are_saved_and_shown_only_on_detail(self):
+        user = get_user_model().objects.create_user(
+            username="creator",
+            first_name="Анна",
+            last_name="Иванова",
+        )
+        status = ExecutorStatus.objects.create(name="Активный")
+        self.client.force_login(user)
+
+        response = self.client.post(
+            reverse("executor_create"),
+            {"last_name": "Петров", "first_name": "Пётр", "status": status.pk},
+        )
+
+        executor = Executor.objects.get(last_name="Петров")
+        self.assertRedirects(
+            response,
+            reverse("executor_detail", args=[executor.pk]),
+            fetch_redirect_response=False,
+        )
+        self.assertEqual(executor.created_by, user)
+        self.assertIsNotNone(executor.created_at)
+        detail = self.client.get(reverse("executor_detail", args=[executor.pk]))
+        self.assertContains(detail, "Добавил:")
+        self.assertContains(detail, "Анна Иванова")
+        self.assertContains(detail, "Дата добавления:")
+        self.assertNotContains(self.client.get(reverse("executor_list")), "Добавил:")
+
+
 class HomeAdminAccessTests(TestCase):
     def test_regular_user_has_no_admin_links_or_admin_access(self):
         user = get_user_model().objects.create_user(username="regular")
