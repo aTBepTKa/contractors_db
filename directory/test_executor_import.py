@@ -14,7 +14,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from .forms import ExecutorForm
-from .management.commands.import_executors import HEADERS, read_xlsx
+from .management.commands.import_executors import HEADERS, LEGACY_HEADERS, read_xlsx
 from .models import EmploymentType, Executor, ExecutorStatus, Specialty
 
 
@@ -24,7 +24,7 @@ class ExecutorImportTests(TestCase):
         Specialty.objects.get_or_create(code="ВК", defaults={"name": "Водоснабжение и канализация"})
         self.row = {h: "" for h in HEADERS}
         self.row.update({
-            "№ исходной записи": "1", "Фамилия": "Проверочный", "Имя": "Исполнитель",
+            "Фамилия": "Проверочный", "Имя": "Исполнитель",
             "Телефон": "+79990000001", "Почта": "test@example.com", "Статус": "Активный",
             "Источник контакта": "HH.ru", "Начал работать с": "2014", "Год рождения": "1993",
             "ПО": "Revit; MagiCAD", "Специальности": "ВК; НВК",
@@ -40,9 +40,9 @@ class ExecutorImportTests(TestCase):
             writer.writeheader()
             writer.writerows(rows)
 
-    def write_xlsx_rows(self, rows):
+    def write_xlsx_rows(self, rows, headers=HEADERS):
         path = Path(self.temp.name) / "executors.xlsx"
-        matrix = [HEADERS] + [[row.get(header, "") for header in HEADERS] for row in rows]
+        matrix = [headers] + [[row.get(header, "") for header in headers] for row in rows]
         xml_rows = []
         for row_number, values in enumerate(matrix, 1):
             cells = "".join(
@@ -111,6 +111,14 @@ class ExecutorImportTests(TestCase):
         call_command("import_executors", str(self.path), stdout=StringIO())
         self.assertEqual(Executor.objects.count(), 0)
 
+    def test_legacy_xlsx_with_source_number_is_still_supported(self):
+        legacy_row = {**self.row, "№ исходной записи": "42"}
+        path = self.write_xlsx_rows([legacy_row], LEGACY_HEADERS)
+
+        call_command("import_executors", str(path), apply=True, stdout=StringIO())
+
+        self.assertEqual(Executor.objects.count(), 1)
+
     def test_apply_preserves_fields_and_relations_and_rejects_repeat(self):
         self.write_rows([self.row])
         call_command("import_executors", str(self.path), apply=True, stdout=StringIO())
@@ -128,7 +136,10 @@ class ExecutorImportTests(TestCase):
         self.assertEqual(Executor.objects.count(), 1)
 
     def test_invalid_later_row_leaves_database_unchanged(self):
-        invalid = dict(self.row, **{"№ исходной записи": "2", "Почта": "invalid"})
+        invalid = dict(
+            self.row,
+            **{"Фамилия": "Другой", "Телефон": "+79990000002", "Почта": "invalid"},
+        )
         self.write_rows([self.row, invalid])
         with self.assertRaises(CommandError):
             call_command("import_executors", str(self.path), apply=True, stdout=StringIO())

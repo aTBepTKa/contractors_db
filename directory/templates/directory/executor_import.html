@@ -37,11 +37,11 @@
     </div>
     <div class="table-wrap import-preview-table-wrap">
         <table>
-            <thead><tr><th>№</th><th>ФИО</th><th>Контакты</th><th>Статус</th><th>Источник</th><th>ПО</th><th>Специальности</th></tr></thead>
+            <thead><tr><th>Строка</th><th>ФИО</th><th>Контакты</th><th>Статус</th><th>Источник</th><th>ПО</th><th>Специальности</th></tr></thead>
             <tbody>
                 {% for row in preview_rows %}
                 <tr>
-                    <td>{{ row.source_id }}</td>
+                    <td>{{ forloop.counter }}</td>
                     <td>{{ row.name }}</td>
                     <td>{{ row.phone|default:"—" }}{% if row.email %}<br>{{ row.email }}{% endif %}</td>
                     <td>{{ row.status }}</td>

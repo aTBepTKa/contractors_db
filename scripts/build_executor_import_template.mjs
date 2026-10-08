@@ -7,8 +7,8 @@ const data = wb.worksheets.add('Для импорта');
 const guide = wb.worksheets.add('Инструкция');
 const refs = wb.worksheets.add('Справочники');
 const headers = [
-  '№ исходной записи', 'Фамилия', 'Имя', 'Отчество', 'Телефон', 'Почта',
-  'Тип занятости', 'Статус', 'Источник контакта', 'Комментарий к источнику',
+  'Фамилия', 'Имя', 'Отчество', 'Телефон', 'Почта', 'Тип занятости',
+  'Статус', 'Источник контакта', 'Комментарий к источнику',
   'Город / местоположение', 'Начал работать с', 'Год рождения', 'ПО',
   'Комментарий по ПО', 'Специальности', 'Общий комментарий',
 ];
@@ -18,29 +18,28 @@ const statuses = ['Активный', 'Космонавт', 'Неактивны�
 const software = ['3ds Max','Audytor','Audytor CO','Audytor OZC','AutoCAD','AutoCAD Plant 3D','AVEVA PDMS','Civil 3D','Danfoss С.О.','DCAD','KAN CO','MagiCAD','Model Studio CS','nanoCAD','Navisworks','Oventrop','Refprop','Rehau Rauwin','Renga','Revit','SANEXT SET','SketchUp','Solibri','SOLIDWORKS','SPDS','Valtec','V-Ray','АРС-ПС','Гранд-смета','КВМ-дым','КВМ-Лаб','КОМПАС-3D'];
 const specialties = [['АиД','Автоматизация и диспетчерезация'],['АПС','Автоматическая пожарная сигнализация'],['АР','Архитектурные решения'],['АУПТ','Автоматическая установка пожаротушения'],['ВК','Водоснабжение и канализация'],['ГП','Генеральный план'],['ИТП','Индивидуальный тепловой пункт'],['КР','Конструктивные решения'],['НВК','Наружные сети водоснабжения и канализации'],['ОВ','Отопление, вентиляция и кондиционирование'],['ООС','Охрана окружающей среды'],['ПБ','Пожарная безопасность'],['ПОС','Проект организации строительства'],['ПТО','Системы пожаротушения и огнезащита'],['СМ','Сметная документация'],['СОУЭ','Система оповещения и управления эвакуацией'],['СС','Сети связи'],['ТМ','Тепломеханические решения'],['ТС','Тепломеханические решения тепловых сетей'],['ТХ','Технологические решения'],['ЭОМ','Электрооборудование и электроосвещение']];
 
-data.getRange('A1:Q201').values = [headers, ...Array.from({length: 200}, () => Array(17).fill(''))];
-data.getRange('A1:Q201').format.font = {name: 'Arial', size: 10};
-data.getRange('A1:Q1').format = {fill: '#263B50', font: {name:'Arial', size:10, bold:true, color:'#FFFFFF'}, wrapText:true, rowHeight:45, horizontalAlignment:'center', verticalAlignment:'center'};
-data.getRange('A2:Q201').format.verticalAlignment = 'top';
-data.getRange('A2:Q201').format.rowHeight = 27;
-data.getRange('A2:Q201').format.fill = '#FFF9E8';
-data.getRange('A:A').format.columnWidth = 13;
-data.getRange('B:D').format.columnWidth = 18;
-data.getRange('E:E').format.columnWidth = 18;
-data.getRange('F:F').format.columnWidth = 30;
-data.getRange('G:I').format.columnWidth = 18;
-data.getRange('J:J').format.columnWidth = 36;
-data.getRange('K:K').format.columnWidth = 24;
-data.getRange('L:M').format.columnWidth = 17;
-data.getRange('N:N').format.columnWidth = 36;
-data.getRange('O:Q').format.columnWidth = 42;
-data.getRange('E2:F201').format.numberFormat = '@';
-data.getRange('J2:Q201').format.wrapText = true;
-data.getRange('G2:G201').dataValidation = {rule:{type:'list', values:employment}};
-data.getRange('H2:H201').dataValidation = {rule:{type:'list', values:statuses}};
-data.getRange('I2:I201').dataValidation = {rule:{type:'list', values:sources}};
-data.getRange('L2:M201').dataValidation = {rule:{type:'whole', operator:'between', formula1:1900, formula2:2100}};
-data.tables.add('A1:Q201', true, 'ExecutorImportTable');
+data.getRange('A1:P201').values = [headers, ...Array.from({length: 200}, () => Array(16).fill(''))];
+data.getRange('A1:P201').format.font = {name: 'Arial', size: 10};
+data.getRange('A1:P1').format = {fill: '#263B50', font: {name:'Arial', size:10, bold:true, color:'#FFFFFF'}, wrapText:true, rowHeight:45, horizontalAlignment:'center', verticalAlignment:'center'};
+data.getRange('A2:P201').format.verticalAlignment = 'top';
+data.getRange('A2:P201').format.rowHeight = 27;
+data.getRange('A2:P201').format.fill = '#FFF9E8';
+data.getRange('A:C').format.columnWidth = 18;
+data.getRange('D:D').format.columnWidth = 18;
+data.getRange('E:E').format.columnWidth = 30;
+data.getRange('F:H').format.columnWidth = 18;
+data.getRange('I:I').format.columnWidth = 36;
+data.getRange('J:J').format.columnWidth = 24;
+data.getRange('K:L').format.columnWidth = 17;
+data.getRange('M:M').format.columnWidth = 36;
+data.getRange('N:P').format.columnWidth = 42;
+data.getRange('D2:E201').format.numberFormat = '@';
+data.getRange('I2:P201').format.wrapText = true;
+data.getRange('F2:F201').dataValidation = {rule:{type:'list', values:employment}};
+data.getRange('G2:G201').dataValidation = {rule:{type:'list', values:statuses}};
+data.getRange('H2:H201').dataValidation = {rule:{type:'list', values:sources}};
+data.getRange('K2:L201').dataValidation = {rule:{type:'whole', operator:'between', formula1:1900, formula2:2100}};
+data.tables.add('A1:P201', true, 'ExecutorImportTable');
 data.freezePanes.freezeRows(1);
 data.freezePanes.freezeColumns(3);
 data.showGridLines = false;
@@ -50,7 +49,7 @@ guide.getRange('A1:F1').merge(); guide.getRange('A1').values = [['Шаблон �
 guide.getRange('A1:F1').format = {font:{name:'Arial', size:15, bold:true, color:'#263B50'}, rowHeight:30};
 const guideRows = [
   ['Как заполнить', 'Заполняйте строки на листе «Для импорта». Не переименовывайте лист и заголовки столбцов. Пустые строки игнорируются.'],
-  ['Обязательные поля', '№ исходной записи, Фамилия, Имя, Статус. Номер должен быть уникальным внутри файла.'],
+  ['Обязательные поля', 'Фамилия, Имя, Статус.'],
   ['Телефон', 'Текст в формате +79991234567. Если телефон скрыт или неизвестен, оставьте ячейку пустой.'],
   ['Тип занятости', 'Выберите из списка. Если оставить пустым, импорт использует «Самозанятый».'],
   ['ПО', 'Несколько программ указывайте через точку с запятой, например: Revit; AutoCAD. Используйте значения со справочного листа.'],
@@ -77,8 +76,8 @@ refs.getRange('A:D').format.columnWidth = 26; refs.getRange('E:E').format.column
 refs.freezePanes.freezeRows(1); refs.showGridLines = false; refs.tabColor = '#A6A6A6';
 
 wb.recalculate();
-console.log((await wb.inspect({kind:'table', range:'Для импорта!A1:Q3', include:'values,formulas', tableMaxRows:3, tableMaxCols:17})).ndjson);
+console.log((await wb.inspect({kind:'table', range:'Для импорта!A1:P3', include:'values,formulas', tableMaxRows:3, tableMaxCols:16})).ndjson);
 console.log((await wb.inspect({kind:'match', searchTerm:'#REF!|#DIV/0!|#VALUE!|#NAME\\?|#N/A|#NUM!|#NULL!|#SPILL!|#CALC!', options:{useRegex:true,maxResults:50}})).ndjson);
-const preview = await wb.render({sheetName:'Для импорта', range:'A1:I8', scale:1.2});
+const preview = await wb.render({sheetName:'Для импорта', range:'A1:H8', scale:1.2});
 await fs.writeFile(output.replace(/\.xlsx$/, '.png'), new Uint8Array(await preview.arrayBuffer()));
 await (await SpreadsheetFile.exportXlsx(wb)).save(output);

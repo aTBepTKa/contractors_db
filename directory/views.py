@@ -9,7 +9,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 from pathlib import Path
 
-from .management.commands.import_executors import HEADERS, read_xlsx_safe, save_prepared, validate_rows
+from .management.commands.import_executors import headers_are_supported, read_xlsx_safe, save_prepared, validate_rows
 
 from .forms import ExecutorForm, ProjectForm
 from .models import (
@@ -114,7 +114,7 @@ def executor_import(request):
         else:
             try:
                 fieldnames, rows = read_xlsx_safe(upload)
-                if list(fieldnames) != list(HEADERS):
+                if not headers_are_supported(fieldnames):
                     raise CommandError("Неверный набор или порядок столбцов.")
                 if not rows:
                     raise CommandError("Файл не содержит исполнителей.")
@@ -122,7 +122,6 @@ def executor_import(request):
                 request.session["executor_import_rows"] = rows
                 context["preview_rows"] = [
                     {
-                        "source_id": row["№ исходной записи"],
                         "name": " ".join(filter(None, [row["Фамилия"], row["Имя"], row["Отчество"]])),
                         "phone": row["Телефон"],
                         "email": row["Почта"],

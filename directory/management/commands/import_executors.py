@@ -21,11 +21,16 @@ FIELDS = {
     "Общий комментарий": "general_comment",
 }
 HEADERS = (
-    "№ исходной записи", "Фамилия", "Имя", "Отчество", "Телефон", "Почта",
-    "Тип занятости", "Статус", "Источник контакта", "Комментарий к источнику",
+    "Фамилия", "Имя", "Отчество", "Телефон", "Почта", "Тип занятости",
+    "Статус", "Источник контакта", "Комментарий к источнику",
     "Город / местоположение", "Начал работать с", "Год рождения", "ПО",
     "Комментарий по ПО", "Специальности", "Общий комментарий",
 )
+LEGACY_HEADERS = ("№ исходной записи",) + HEADERS
+
+
+def headers_are_supported(fieldnames):
+    return tuple(fieldnames) in (HEADERS, LEGACY_HEADERS)
 
 
 def read_xlsx(path):
@@ -53,7 +58,7 @@ def read_xlsx(path):
         root = ElementTree.fromstring(archive.read(sheet_path))
         result = []
         for row in root.findall(f".//{{{main_ns}}}row"):
-            values = [""] * len(HEADERS)
+            values = [""] * len(LEGACY_HEADERS)
             for cell in row.findall(f"{{{main_ns}}}c"):
                 if cell.find(f"{{{main_ns}}}f") is not None:
                     raise ValueError("Формулы на листе «Для импорта» не поддерживаются")
@@ -63,7 +68,7 @@ def read_xlsx(path):
                 for char in letters:
                     column = column * 26 + ord(char.upper()) - 64
                 column -= 1
-                if not 0 <= column < len(HEADERS):
+                if not 0 <= column < len(LEGACY_HEADERS):
                     continue
                 kind = cell.attrib.get("t")
                 if kind == "inlineStr":
@@ -78,7 +83,14 @@ def read_xlsx(path):
     if not result:
         return [], []
     headers = [str(value).strip() for value in result[0]]
-    rows = [dict(zip(headers, map(str, values))) for values in result[1:] if any(str(v).strip() for v in values)]
+    while headers and not headers[-1]:
+        headers.pop()
+    width = len(headers)
+    rows = [
+        dict(zip(headers, map(str, values[:width])))
+        for values in result[1:]
+        if any(str(v).strip() for v in values[:width])
+    ]
     return headers, rows
 
 
@@ -113,7 +125,7 @@ def lookup(model, value, key="name", optional=False):
 
 def validate_rows(rows):
     prepared, errors = [], []
-    seen = {key: set() for key in ["source_id", "phone", "email", "name"]}
+    seen = {key: set() for key in ["phone", "email", "name"]}
     existing_phones = set(Executor.objects.exclude(phone="").values_list("phone", flat=True))
     existing_emails = {v.lower() for v in Executor.objects.exclude(email="").values_list("email", flat=True)}
     existing_names = {tuple(v.casefold() for v in parts) for parts in Executor.objects.values_list("last_name", "first_name", "middle_name")}
@@ -132,10 +144,7 @@ def validate_rows(rows):
             obj.full_clean()
             programs = [lookup(Software, name.strip()) for name in row["ПО"].split(";") if name.strip()]
             specialties = [lookup(Specialty, code.strip(), key="code") for code in row["Специальности"].split(";") if code.strip()]
-            source_id = row["№ исходной записи"].strip()
-            if not source_id:
-                raise ValueError("Не указан номер исходной записи")
-            keys = {"source_id": source_id, "phone": obj.phone, "email": obj.email,
+            keys = {"phone": obj.phone, "email": obj.email,
                     "name": tuple(getattr(obj, f).casefold() for f in ["last_name", "first_name", "middle_name"])}
             for key, value in keys.items():
                 if value and value in seen[key]:
@@ -169,7 +178,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         fieldnames, rows = read_input(options["path"])
-        if list(fieldnames) != list(HEADERS):
+        if not headers_are_supported(fieldnames):
             raise CommandError("Неверный набор или порядок столбцов")
         if not rows:
             raise CommandError("Файл не содержит исполнителей")
