@@ -114,13 +114,16 @@ def read_xlsx_safe(source):
         raise CommandError(f"Не удалось прочитать Excel: {exc}") from exc
 
 
-def lookup(model, value, key="name", optional=False):
+def lookup(model, value, key="name", optional=False, case_insensitive=False):
     if not value and optional:
         return None
+    lookup_key = f"{key}__iexact" if case_insensitive else key
     try:
-        return model.objects.get(**{key: value, "is_active": True})
+        return model.objects.get(**{lookup_key: value, "is_active": True})
     except model.DoesNotExist:
         raise ValueError(f"{model._meta.verbose_name}: неизвестное или неактивное значение «{value}»")
+    except model.MultipleObjectsReturned:
+        raise ValueError(f"{model._meta.verbose_name}: неоднозначное значение «{value}»")
 
 
 def validate_rows(rows):
@@ -142,8 +145,14 @@ def validate_rows(rows):
             values["contact_source"] = lookup(ContactSource, row["Источник контакта"].strip(), optional=True)
             obj = Executor(**values)
             obj.full_clean()
-            programs = [lookup(Software, name.strip()) for name in row["ПО"].split(";") if name.strip()]
-            specialties = [lookup(Specialty, code.strip(), key="code") for code in row["Специальности"].split(";") if code.strip()]
+            programs = [
+                lookup(Software, name.strip(), case_insensitive=True)
+                for name in row["ПО"].split(";") if name.strip()
+            ]
+            specialties = [
+                lookup(Specialty, code.strip(), key="code", case_insensitive=True)
+                for code in row["Специальности"].split(";") if code.strip()
+            ]
             keys = {"phone": obj.phone, "email": obj.email,
                     "name": tuple(getattr(obj, f).casefold() for f in ["last_name", "first_name", "middle_name"])}
             for key, value in keys.items():
