@@ -6,7 +6,7 @@ from django.db import IntegrityError, models, transaction
 from django.http import FileResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_POST, require_GET
 from pathlib import Path
 
 from .management.commands.import_executors import headers_are_supported, read_xlsx_safe, save_prepared, validate_rows
@@ -429,6 +429,26 @@ def update_executor_status(request, executor_id):
     author = executor.status_changed_by
     return JsonResponse({"saved": True, "status_id": status.pk,
                          "author": (author.get_full_name() or author.username) if author else "Не указан"})
+
+
+
+
+
+@login_required
+@require_GET
+def executor_duplicates(request):
+    surname = request.GET.get("last_name", "").strip()
+    if not surname or len(surname) > 150:
+        return JsonResponse({"matches": []})
+    executors = Executor.objects.filter(last_name__iexact=surname).prefetch_related(
+        "executor_specialties__specialty"
+    ).order_by("first_name", "id")
+    return JsonResponse({"matches": [{
+        "id": item.pk, "name": str(item), "phone": item.phone or "—",
+        "email": item.email or "—",
+        "specialties": ", ".join(str(link.specialty) for link in item.executor_specialties.all()) or "—",
+    } for item in executors]})
+
 
 @login_required
 def project_list(request):

@@ -31,6 +31,7 @@
                 {{ form.last_name.label_tag }}
                 {{ form.last_name }}
                 {{ form.last_name.errors }}
+                {% if not executor %}<div id="surname-matches" class="small" aria-live="polite"></div>{% endif %}
             </div>
 
             <div>
@@ -149,6 +150,45 @@
 </div>
 
 <script>
+    (() => {
+        const output = document.getElementById('surname-matches');
+        if (!output) return;
+        const input = document.getElementById('id_last_name');
+        let timer, version = 0, controller;
+        function search() {
+            clearTimeout(timer);
+            const current = ++version;
+            if (controller) controller.abort();
+            output.replaceChildren();
+            const value = input.value.trim();
+            if (!value) return;
+            timer = setTimeout(async () => {
+                controller = new AbortController();
+                try {
+                    const response = await fetch('{% url "executor_duplicates" %}?last_name=' + encodeURIComponent(value), {signal: controller.signal});
+                    if (!response.ok) throw new Error();
+                    const data = await response.json();
+                    if (current !== version) return;
+                    output.replaceChildren();
+                    data.matches.forEach(item => {
+                        const entry = document.createElement('p');
+                        const link = document.createElement('a');
+                        link.href = '/executors/' + item.id + '/';
+                        link.target = '_blank';
+                        link.rel = 'noopener';
+                        link.textContent = item.name;
+                        entry.append('Найден уже существующий специалист: ', link,
+                            '. Специальности: ' + item.specialties + '. Телефон: ' + item.phone + '. Почта: ' + item.email);
+                        output.append(entry);
+                    });
+                } catch (error) {
+                    if (current === version && error.name !== 'AbortError') output.textContent = 'Не удалось проверить совпадения. Повторите ввод фамилии.';
+                }
+            }, 300);
+        }
+        input.addEventListener('input', search);
+        search();
+    })();
     document.querySelectorAll("[data-executor-status-value]").forEach((button) => {
         button.addEventListener("click", () => {
             const wrap = button.closest(".executor-status-progress");

@@ -13,6 +13,7 @@ urlpatterns = [
     path("executors/import/confirm/", views.executor_import_confirm, name="executor_import_confirm"),
     path("executors/bulk-add/", views.bulk_add_executors, name="bulk_add_executors"),
     path("executors/add/", views.executor_create, name="executor_create"),
+    path("executors/duplicates/", views.executor_duplicates, name="executor_duplicates"),
     path("executors/<int:executor_id>/", views.executor_detail, name="executor_detail"),
     path("executors/<int:executor_id>/status/", views.update_executor_status, name="update_executor_status"),
     path("executors/<int:executor_id>/edit/", views.executor_update, name="executor_update"),

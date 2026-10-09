@@ -133,7 +133,18 @@
                                 {% if item.executor.software_comment %}<br><span class="small muted">{{ item.executor.software_comment }}</span>{% endif %}
                             </td>
                             <td>
-                                {{ item.executor.status }}
+                                {% if request.read_only %}
+                                    {{ item.executor.status }}
+                                {% else %}
+                                <form method="post" action="{% url 'update_executor_status' item.executor.id %}" class="list-status-form">
+                                    {% csrf_token %}
+                                    <select name="status_id" aria-label="Статус {{ item.executor }}" style="width:100%;min-width:0">
+                                        {% if not item.executor.status.is_active %}<option value="{{ item.executor.status_id }}" selected disabled>{{ item.executor.status }}</option>{% endif %}
+                                        {% for status in executor_statuses %}<option value="{{ status.id }}" {% if status.id == item.executor.status_id %}selected{% endif %}>{{ status.name }}</option>{% endfor %}
+                                    </select>
+                                    <span class="small muted" role="status"></span>
+                                </form>
+                                {% endif %}
                                 {% if item.executor.status_comment %}<br><span class="small muted">{{ item.executor.status_comment }}</span>{% endif %}
                             </td>
                             <td>
@@ -192,6 +203,27 @@
 </div>
 
 <script>
+    document.querySelectorAll('.list-status-form').forEach(form => {
+        const select = form.querySelector('select');
+        const feedback = form.querySelector('[role="status"]');
+        let saved = select.value;
+        form.addEventListener('submit', event => event.preventDefault());
+        select.addEventListener('change', async () => {
+            const body = new FormData(form);
+            select.disabled = true;
+            feedback.textContent = 'Сохранение…';
+            try {
+                const response = await fetch(form.action, {method: 'POST', body});
+                if (!response.ok || !(await response.json()).saved) throw new Error();
+                saved = select.value;
+                form.closest('tr').classList.toggle('inactive', select.selectedOptions[0].textContent !== 'Активный');
+                feedback.textContent = 'Сохранено';
+            } catch (_) {
+                select.value = saved;
+                feedback.textContent = 'Не сохранено. Повторите выбор.';
+            } finally { select.disabled = false; }
+        });
+    });
     (() => {
         const filterForm = document.querySelector("#executor-filter-form");
         const searchInput = filterForm.querySelector("#q");
