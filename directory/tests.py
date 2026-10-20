@@ -139,6 +139,58 @@ class ExecutorCreationMetadataTests(TestCase):
         self.assertNotContains(self.client.get(reverse("executor_list")), "Добавил:")
 
 
+class ExecutorDeletionTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(username="executor-editor")
+        self.status = ExecutorStatus.objects.create(name="Активный")
+        self.executor = Executor.objects.create(
+            last_name="Удаляемый",
+            first_name="Исполнитель",
+            status=self.status,
+        )
+        self.client.force_login(self.user)
+
+    def test_edit_form_links_to_separate_delete_confirmation(self):
+        edit_response = self.client.get(
+            reverse("executor_update", args=[self.executor.pk])
+        )
+
+        self.assertContains(edit_response, "Удалить исполнителя")
+        self.assertContains(
+            edit_response,
+            reverse("executor_delete", args=[self.executor.pk]),
+        )
+
+        confirmation = self.client.get(
+            reverse("executor_delete", args=[self.executor.pk])
+        )
+        self.assertEqual(confirmation.status_code, 200)
+        self.assertContains(confirmation, "Удалить исполнителя?")
+        self.assertTrue(Executor.objects.filter(pk=self.executor.pk).exists())
+
+    def test_post_deletes_executor_and_redirects_to_list(self):
+        response = self.client.post(
+            reverse("executor_delete", args=[self.executor.pk])
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("executor_list"),
+            fetch_redirect_response=False,
+        )
+        self.assertFalse(Executor.objects.filter(pk=self.executor.pk).exists())
+
+    def test_read_only_user_cannot_open_confirmation_or_delete(self):
+        from django.contrib.auth.models import Group
+
+        self.user.groups.add(Group.objects.get_or_create(name="Только просмотр")[0])
+        url = reverse("executor_delete", args=[self.executor.pk])
+
+        self.assertEqual(self.client.get(url).status_code, 403)
+        self.assertEqual(self.client.post(url).status_code, 403)
+        self.assertTrue(Executor.objects.filter(pk=self.executor.pk).exists())
+
+
 class HomeAdminAccessTests(TestCase):
     def test_regular_user_has_no_admin_links_or_admin_access(self):
         user = get_user_model().objects.create_user(username="regular")

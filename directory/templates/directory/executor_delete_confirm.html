@@ -1,0 +1,20 @@
+{% extends "directory/base.html" %}
+
+{% block title %}Удаление исполнителя{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>Удалить исполнителя?</h1>
+
+    <p>
+        Вы собираетесь удалить исполнителя <strong>{{ executor }}</strong>
+        и все связанные с ним данные. Это действие нельзя отменить.
+    </p>
+
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="danger-button">Да, удалить исполнителя</button>
+        <a class="button secondary-button" href="{% url 'executor_update' executor.id %}">Отмена</a>
+    </form>
+</div>
+{% endblock %}

@@ -6,7 +6,7 @@ from django.db import IntegrityError, models, transaction
 from django.http import FileResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
-from django.views.decorators.http import require_POST, require_GET
+from django.views.decorators.http import require_GET, require_http_methods, require_POST
 from pathlib import Path
 
 from .management.commands.import_executors import headers_are_supported, read_xlsx_safe, save_prepared, validate_rows
@@ -1366,6 +1366,23 @@ def executor_update(request, executor_id):
     }
 
     return render(request, "directory/executor_form.html", context)
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def executor_delete(request, executor_id):
+    executor = get_object_or_404(Executor, id=executor_id)
+
+    if request.method == "POST":
+        executor.delete()
+        messages.success(request, "Исполнитель удалён.")
+        return redirect("executor_list")
+
+    return render(
+        request,
+        "directory/executor_delete_confirm.html",
+        {"executor": executor},
+    )
 
 @login_required
 def delete_selection_negotiation(request, negotiation_id):
