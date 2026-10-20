@@ -209,12 +209,22 @@ def bulk_add_executors(request):
 
 @login_required
 def executor_list(request):
-    show_all = request.GET.get("show_all") == "1"
     specialty_ids = request.GET.getlist("specialty")
     software_ids = request.GET.getlist("software")
-    status_id = request.GET.get("status")
     search_query = request.GET.get("q", "").strip()
     sort = request.GET.get("sort", "name")
+
+    # Здесь нужен именно статус исполнителя, а не статус подбора.
+    executor_statuses = ExecutorStatus.objects.filter(is_active=True).order_by("name")
+    if "status_filter" in request.GET:
+        selected_status_ids = request.GET.getlist("status")
+    else:
+        selected_status_ids = [
+            str(status_id)
+            for status_id in executor_statuses.filter(
+                name__in=("Активный", "Космонавт")
+            ).values_list("id", flat=True)
+        ]
 
     executors = (
         Executor.objects
@@ -229,9 +239,6 @@ def executor_list(request):
         )
     )
 
-    if not show_all:
-        executors = executors.filter(status__name="Активный")
-
     if specialty_ids:
         executors = executors.filter(
             executor_specialties__specialty_id__in=specialty_ids
@@ -240,11 +247,8 @@ def executor_list(request):
     if software_ids:
         executors = executors.filter(software__id__in=software_ids)
 
-    # Здесь нужен именно статус исполнителя, а не статус подбора.
-    executor_statuses = ExecutorStatus.objects.filter(is_active=True).order_by("name")
-
-    if status_id:
-        executors = executors.filter(status_id=status_id)
+    if selected_status_ids:
+        executors = executors.filter(status_id__in=selected_status_ids)
 
     if search_query:
         executors = executors.filter(
@@ -324,8 +328,7 @@ def executor_list(request):
         "executor_statuses": executor_statuses,
         "selected_specialty_ids": specialty_ids,
         "selected_software_ids": software_ids,
-        "selected_status_id": status_id,
-        "show_all": show_all,
+        "selected_status_ids": selected_status_ids,
         "search_query": search_query,
         "sort": sort,
         "projects": Project.objects.select_related("status").order_by("name"),

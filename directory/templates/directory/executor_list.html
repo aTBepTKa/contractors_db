@@ -26,19 +26,31 @@
 
 <div class="form-panel">
     <form method="get" id="executor-filter-form">
+        <input type="hidden" name="status_filter" value="1">
         <div class="executor-filter-main">
             <div>
                 <label for="q">Поиск</label>
                 <input type="text" id="q" name="q" value="{{ search_query }}" placeholder="ФИО, контакты или комментарий" autocomplete="off">
             </div>
             <div>
-                <label for="status">Статус</label>
-                <select name="status" id="status">
-                    <option value="">Все статусы</option>
-                    {% for status in executor_statuses %}
-                        <option value="{{ status.id }}" {% if selected_status_id == status.id|stringformat:"s" %}selected{% endif %}>{{ status.name }}</option>
-                    {% endfor %}
-                </select>
+                <label>Статус</label>
+                <details class="status-filter-dropdown">
+                    <summary>
+                        {% if selected_status_ids %}
+                            Выбрано: {{ selected_status_ids|length }}
+                        {% else %}
+                            Без ограничения
+                        {% endif %}
+                    </summary>
+                    <div class="status-filter-options">
+                        {% for status in executor_statuses %}
+                            <label>
+                                <input type="checkbox" name="status" value="{{ status.id }}" {% if status.id|stringformat:"s" in selected_status_ids %}checked{% endif %}>
+                                <span>{{ status.name }}</span>
+                            </label>
+                        {% endfor %}
+                    </div>
+                </details>
             </div>
             <div>
                 <label for="sort">Сортировка</label>
@@ -46,9 +58,6 @@
                     <option value="name" {% if sort == "name" %}selected{% endif %}>По ФИО</option>
                     <option value="status" {% if sort == "status" %}selected{% endif %}>По статусу</option>
                 </select>
-            </div>
-            <div class="executor-filter-checkbox">
-                <label><input type="checkbox" name="show_all" value="1" {% if show_all %}checked{% endif %}> Показать всех</label>
             </div>
         </div>
 

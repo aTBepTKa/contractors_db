@@ -446,6 +446,8 @@ class ExecutorListTests(TestCase):
         )
         self.client.force_login(self.user)
         self.status = ExecutorStatus.objects.create(name="Активный")
+        self.cosmonaut_status = ExecutorStatus.objects.create(name="Космонавт")
+        self.inactive_status = ExecutorStatus.objects.create(name="Неактивный")
         self.specialty_ar = Specialty.objects.create(code="АР", name="Архитектура")
         self.specialty_kr = Specialty.objects.create(code="КР", name="Конструкции")
         self.revit, _ = Software.objects.get_or_create(name="Revit")
@@ -475,6 +477,58 @@ class ExecutorListTests(TestCase):
 
         self.assertContains(response, "Архитектор Ревит")
         self.assertContains(response, "Конструктор Автокад")
+
+    def test_default_statuses_are_active_and_cosmonaut(self):
+        cosmonaut = Executor.objects.create(
+            last_name="Космонавтов",
+            first_name="Кузьма",
+            status=self.cosmonaut_status,
+        )
+        Executor.objects.create(
+            last_name="Неактивный",
+            first_name="Николай",
+            status=self.inactive_status,
+        )
+
+        response = self.client.get(reverse("executor_list"))
+
+        self.assertContains(response, str(cosmonaut))
+        self.assertNotContains(response, "Неактивный Николай")
+        self.assertNotContains(response, "Показать всех")
+        self.assertNotContains(response, "Все статусы</option>")
+
+    def test_status_filter_accepts_multiple_values(self):
+        inactive = Executor.objects.create(
+            last_name="Неактивный",
+            first_name="Николай",
+            status=self.inactive_status,
+        )
+
+        response = self.client.get(
+            reverse("executor_list"),
+            {
+                "status_filter": "1",
+                "status": [str(self.status.id), str(self.inactive_status.id)],
+            },
+        )
+
+        self.assertContains(response, str(self.revit_executor))
+        self.assertContains(response, str(inactive))
+
+    def test_empty_status_selection_shows_all_statuses(self):
+        inactive = Executor.objects.create(
+            last_name="Неактивный",
+            first_name="Николай",
+            status=self.inactive_status,
+        )
+
+        response = self.client.get(
+            reverse("executor_list"),
+            {"status_filter": "1"},
+        )
+
+        self.assertContains(response, str(self.revit_executor))
+        self.assertContains(response, str(inactive))
 
     def test_filters_by_specialty_checkboxes(self):
         response = self.client.get(
