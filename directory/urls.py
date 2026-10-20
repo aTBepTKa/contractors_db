@@ -17,6 +17,7 @@ urlpatterns = [
     path("executors/<int:executor_id>/", views.executor_detail, name="executor_detail"),
     path("executors/<int:executor_id>/status/", views.update_executor_status, name="update_executor_status"),
     path("executors/<int:executor_id>/edit/", views.executor_update, name="executor_update"),
+    path("executors/<int:executor_id>/delete/", views.executor_delete, name="executor_delete"),
     path("executors/<int:executor_id>/comments/add/", views.add_executor_comment, name="add_executor_comment"),
 
     # Проекты

@@ -149,6 +149,14 @@
     </form>
 </div>
 
+{% if executor %}
+<div class="card">
+    <h2>Удаление исполнителя</h2>
+    <p class="muted">Исполнитель и связанные с ним данные будут удалены без возможности восстановления.</p>
+    <a class="button danger-button" href="{% url 'executor_delete' executor.id %}">Удалить исполнителя</a>
+</div>
+{% endif %}
+
 <script>
     (() => {
         const output = document.getElementById('surname-matches');
