@@ -279,6 +279,11 @@ def bulk_add_executors(request):
 
 @login_required
 def executor_list(request):
+    optional_fields = [("city", "Город"), ("employment_type", "Тип занятости"),
+                       ("birth_year", "Год рождения"), ("work_start_year", "Начал работать с"),
+                       ("contact_source", "Источник контакта"), ("source_comment", "Комментарий к источнику"),
+                       ("general_comment", "Общий комментарий"), ("status_comment", "Комментарий к статусу"),
+                       ("software_comment", "Комментарий по ПО"), ("created_by", "Добавил")]
     specialty_ids = request.GET.getlist("specialty")
     software_ids = request.GET.getlist("software")
     search_query = request.GET.get("q", "").strip()
@@ -298,13 +303,15 @@ def executor_list(request):
 
     executors = (
         Executor.objects
-        .select_related("status", "employment_type")
+        .select_related("status", "employment_type", "contact_source", "created_by")
         .prefetch_related(
             "executor_specialties__specialty",
             "software",
             "project_selections__project",
             "project_selections__specialty",
             "project_selections__status",
+            "project_selections__project__status",
+            "project_selections__negotiations__user",
             "comments",
         )
     )
@@ -371,6 +378,7 @@ def executor_list(request):
                 last_projects.append(
                     {
                         "project": selection.project.name,
+                        "project_id": selection.project_id,
                         "specialty": selection.specialty.code,
                         "selection_status": selection.status.name if selection.status else "—",
                         "amount": format_money(selection.offer_amount),
@@ -383,6 +391,9 @@ def executor_list(request):
                 break
 
         last_comment = executor.comments.all().order_by("-created_at").first()
+        negotiations = [(note, selection.project) for selection in selections
+                        for note in selection.negotiations.all()]
+        latest = max(negotiations, key=lambda pair: (pair[0].created_at, pair[0].pk), default=None)
 
         result_items.append(
             {
@@ -392,11 +403,15 @@ def executor_list(request):
                 "software_items": software_items,
                 "last_projects": last_projects,
                 "last_comment": last_comment,
+                "last_negotiation": latest[0] if latest else None,
+                "negotiation_project": latest[1] if latest else None,
+                "optional_values": [getattr(executor, key) for key, label in optional_fields],
             }
         )
 
     context = {
         "items": result_items,
+        "optional_fields": optional_fields,
         "specialties": Specialty.objects.filter(is_active=True).order_by("code"),
         "software_options": Software.objects.filter(is_active=True).order_by("name"),
         "executor_statuses": executor_statuses,

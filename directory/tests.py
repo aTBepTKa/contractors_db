@@ -567,7 +567,7 @@ class ExecutorListTests(TestCase):
         newest_first = self.client.get(reverse("executor_list"), {"sort": "created_desc"})
         oldest_first = self.client.get(reverse("executor_list"), {"sort": "created_asc"})
 
-        self.assertContains(newest_first, "Дата создания")
+        self.assertContains(newest_first, "Дата добавления")
         self.assertEqual(newest_first.context["items"][0]["executor"], self.autocad_executor)
         self.assertEqual(oldest_first.context["items"][0]["executor"], self.revit_executor)
 
@@ -576,6 +576,22 @@ class ExecutorListTests(TestCase):
 
         self.assertContains(response, "event.shiftKey")
         self.assertContains(response, "bulkChecks.slice")
+
+    def test_latest_negotiation_and_configurable_columns(self):
+        from .models import SelectionNegotiation
+        project = Project.objects.create(name="Объект для ссылки", object_type=ObjectType.objects.create(name="Тест"))
+        selection = ProjectSelection.objects.create(project=project, executor=self.revit_executor,
+                                                   specialty=self.specialty_ar, status=SelectionStatus.objects.create(name="Новый"))
+        SelectionNegotiation.objects.create(selection=selection, user=self.user, event_date=timezone.localdate(), comment="Старая запись")
+        latest = SelectionNegotiation.objects.create(selection=selection, user=self.user,
+                                                     event_date=timezone.localdate() - timedelta(days=1), comment="Последняя добавленная запись")
+        response = self.client.get(reverse("executor_list"))
+        item = next(item for item in response.context["items"] if item["executor"] == self.revit_executor)
+        self.assertEqual(item["last_negotiation"], latest)
+        self.assertContains(response, reverse("project_detail", args=[project.pk]))
+        self.assertContains(response, "Последняя добавленная запись")
+        self.assertContains(response, "Настроить столбцы")
+        self.assertIn(("city", "Город"), response.context["optional_fields"])
 
     def test_export_is_available_only_to_admin(self):
         url = reverse("export_executors")

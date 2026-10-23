@@ -108,6 +108,7 @@
         </div>
     </div>
     {% if items %}
+        <details><summary>Настроить столбцы</summary><div id="executor-column-options" style="display:flex;flex-wrap:wrap;gap:12px;padding:12px 0"></div></details>
         <p class="small muted">Потяните границу заголовка, чтобы изменить ширину столбца. Удерживайте Shift, чтобы выбрать диапазон исполнителей.</p>
         <div class="table-wrap executor-table-wrap">
             <table class="executor-table" data-resizable-table>
@@ -121,6 +122,8 @@
                     <col data-column-key="created" style="width: 120px;">
                     <col data-column-key="projects" style="width: 260px;">
                     <col data-column-key="comment" style="width: 230px;">
+                    <col data-column-key="negotiation" style="width: 280px;">
+                    {% for key, label in optional_fields %}<col data-column-key="{{ key }}" data-optional="true" style="width:180px;">{% endfor %}
                 </colgroup>
                 <thead>
                     <tr>
@@ -130,9 +133,11 @@
                         <th>Контакты<span class="column-resizer" aria-hidden="true"></span></th>
                         <th>ПО<span class="column-resizer" aria-hidden="true"></span></th>
                         <th>Статус<span class="column-resizer" aria-hidden="true"></span></th>
-                        <th>Дата создания<span class="column-resizer" aria-hidden="true"></span></th>
+                        <th>Дата добавления<span class="column-resizer" aria-hidden="true"></span></th>
                         <th>Последние проекты<span class="column-resizer" aria-hidden="true"></span></th>
                         <th>Последний комментарий<span class="column-resizer" aria-hidden="true"></span></th>
+                        <th>Последний комментарий из подбора<span class="column-resizer" aria-hidden="true"></span></th>
+                        {% for key, label in optional_fields %}<th>{{ label }}<span class="column-resizer" aria-hidden="true"></span></th>{% endfor %}
                     </tr>
                 </thead>
                 <tbody>
@@ -174,7 +179,7 @@
                             <td>
                                 {% if item.last_projects %}
                                     {% for project in item.last_projects %}
-                                        <strong>{{ project.project }}</strong>
+                                        <a href="{% url 'project_detail' project.project_id %}"><strong>{{ project.project }}</strong></a>
                                         <span class="small muted">({{ project.status }})</span><br>
                                         <span class="small muted">
                                             {{ project.specialty }} /
@@ -189,6 +194,14 @@
                                     {{ item.last_comment.comment }}<br><span class="small muted">{{ item.last_comment.created_at|date:"d.m.Y H:i" }}</span>
                                 {% else %}—{% endif %}
                             </td>
+                            <td>
+                                {% if item.last_negotiation %}
+                                    <a href="{% url 'project_detail' item.negotiation_project.id %}">{{ item.negotiation_project.name }}</a><br>
+                                    {{ item.last_negotiation.comment|linebreaksbr }}<br>
+                                    <span class="small muted">{{ item.last_negotiation.created_at|date:"d.m.Y H:i" }} · {{ item.last_negotiation.user.get_full_name|default:item.last_negotiation.user.username }}</span>
+                                {% else %}—{% endif %}
+                            </td>
+                            {% for value in item.optional_values %}<td>{{ value|default_if_none:"—"|default:"—" }}</td>{% endfor %}
                         </tr>
                     {% endfor %}
                 </tbody>
@@ -280,7 +293,32 @@
 
         const storageKey = "executor-table-column-widths";
         const columns = Array.from(table.querySelectorAll("col[data-column-key]"));
-        const savedWidths = JSON.parse(localStorage.getItem(storageKey) || "{}");
+        let savedWidths = {}, visibility = {};
+        const visibilityKey = 'executor-visible-columns-v1';
+        try { savedWidths = JSON.parse(localStorage.getItem(storageKey) || '{}') || {}; } catch (_) {}
+        try { visibility = JSON.parse(localStorage.getItem(visibilityKey) || '{}') || {}; } catch (_) {}
+        const headers = Array.from(table.querySelectorAll('thead th'));
+        const rows = Array.from(table.querySelectorAll('tr'));
+        columns.forEach((column, index) => {
+            if (index < 2) return; // Selection and name always remain available.
+            const key = column.dataset.columnKey;
+            const label = document.createElement('label');
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.checked = key in visibility ? Boolean(visibility[key]) : !column.dataset.optional;
+            label.append(checkbox, ' ' + headers[index].textContent.trim());
+            document.getElementById('executor-column-options').append(label);
+            const apply = () => {
+                const display = checkbox.checked ? '' : 'none';
+                column.style.display = display;
+                rows.forEach(row => { if (row.cells[index]) row.cells[index].style.display = display; });
+            };
+            checkbox.addEventListener('change', () => {
+                apply(); visibility[key] = checkbox.checked;
+                try { localStorage.setItem(visibilityKey, JSON.stringify(visibility)); } catch (_) {}
+            });
+            apply();
+        });
 
         columns.forEach((column) => {
             const savedWidth = savedWidths[column.dataset.columnKey];
@@ -310,9 +348,9 @@
 
                     const widths = {};
                     columns.forEach((item) => {
-                        widths[item.dataset.columnKey] = Math.round(item.getBoundingClientRect().width);
+                        widths[item.dataset.columnKey] = parseFloat(item.style.width) || 180;
                     });
-                    localStorage.setItem(storageKey, JSON.stringify(widths));
+                    try { localStorage.setItem(storageKey, JSON.stringify(widths)); } catch (_) {}
                 };
 
                 document.addEventListener("pointermove", resize);
@@ -333,6 +371,7 @@
             bulkOpen.disabled = selected.length === 0;
             if (exportButton) exportButton.disabled = selected.length === 0;
             document.querySelector("#bulk-select-all").checked = bulkChecks.length > 0 && selected.length === bulkChecks.length;
+            document.querySelector("#bulk-select-all").indeterminate = selected.length > 0 && selected.length < bulkChecks.length;
         };
         bulkChecks.forEach((check) => check.addEventListener("click", (event) => {
             if (event.shiftKey && lastChecked) {
