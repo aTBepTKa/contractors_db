@@ -68,6 +68,7 @@ class FullNameModelChoiceField(forms.ModelChoiceField):
         return full_name or "Не указано"
 
 class ExecutorForm(forms.ModelForm):
+    required_css_class = "required-field"
     specialties = forms.ModelMultipleChoiceField(
         label="Специальности",
         queryset=Specialty.objects.none(),
@@ -119,6 +120,10 @@ class ExecutorForm(forms.ModelForm):
         self.fields["status"].queryset = ExecutorStatus.objects.filter(
             is_active=True
         ).order_by("name")
+        if not self.instance.pk and not self.is_bound and "status" not in self.initial:
+            active_status = self.fields["status"].queryset.filter(name="Активный").first()
+            if active_status:
+                self.initial["status"] = active_status.pk
 
         self.fields["specialties"].queryset = Specialty.objects.filter(
             is_active=True

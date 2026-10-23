@@ -118,7 +118,7 @@
         <div>В работе: <strong>{{ selection_status_counters.Рассматривает }}</strong></div>
         <div>Готов: <strong>{{ selection_status_counters.Готов }}</strong></div>
         <div>Утвержден: <strong>{{ selection_status_counters.Утвержден }}</strong></div>
-        <div>Отказ: <strong>{{ selection_status_counters.Отказ }}</strong></div>
+        <div>Не готов: <strong>{{ selection_status_counters.Отказ }}</strong></div>
     </div>
 
     <p>
@@ -287,10 +287,10 @@
                                             <label class="small muted">Статус</label>
                                             <div class="selection-status-wrap selection-status-progress {{ row.status_css_class }}">
                                                 <select name="status_id" class="compact-select autosave-control" data-autosave-field="status_id">
-                                                    {% for status in selection_statuses %}<option value="{{ status.id }}" {% if row.selection.status_id == status.id %}selected{% endif %}>{{ status.name }}</option>{% endfor %}
+                                                    {% for status in selection_statuses %}<option value="{{ status.id }}" {% if row.selection.status_id == status.id %}selected{% endif %}>{% if status.name == "Отказ" %}Не готов{% elif status.name == "Новый" %}Черновик{% elif status.name == "Рассматривает" %}В работе{% else %}{{ status.name }}{% endif %}</option>{% endfor %}
                                                 </select>
                                                 <div class="selection-status-steps" role="group" aria-label="Статус подбора">
-                                                    {% for status in selection_statuses %}<button type="button" class="selection-status-step{% if row.selection.status_id == status.id %} is-active{% endif %}" data-status-value="{{ status.id }}">{% if status.name == "Новый" %}Черновик{% elif status.name == "Рассматривает" %}В работе{% else %}{{ status.name }}{% endif %}</button>{% endfor %}
+                                                    {% for status in selection_statuses %}<button type="button" class="selection-status-step{% if row.selection.status_id == status.id %} is-active{% endif %}" data-status-value="{{ status.id }}">{% if status.name == "Новый" %}Черновик{% elif status.name == "Рассматривает" %}В работе{% elif status.name == "Отказ" %}Не готов{% else %}{{ status.name }}{% endif %}</button>{% endfor %}
                                                 </div>
                                             </div>
                                         </div>
@@ -334,24 +334,14 @@
                                                     {{ row.last_negotiation.comment|linebreaksbr }}
                                                 </div>
 
-                                                <form
-                                                    method="post"
-                                                    action="/negotiations/{{ row.last_negotiation.id }}/delete/"
-                                                    onsubmit="return confirm('Удалить последнюю запись переговоров?');"
-                                                    class="inline-form"
-                                                >
-                                                    {% csrf_token %}
-                                                    <button type="submit" class="link-button danger-link">
-                                                        удалить
-                                                    </button>
-                                                </form>
+{% include "directory/negotiation_actions.html" with negotiation=row.last_negotiation %}
                                             </div>
                                         {% else %}
                                             <div class="small muted">Записей нет.</div>
                                         {% endif %}
 
                                         {% if row.old_negotiations %}
-                                            <details class="negotiation-history">
+                                            <details class="negotiation-history" data-history-selection="{{ row.selection.id }}">
                                                 <summary>
                                                     История: {{ row.old_negotiations|length }}
                                                 </summary>
@@ -367,17 +357,7 @@
                                                             {{ negotiation.comment|linebreaksbr }}
                                                         </div>
 
-                                                        <form
-                                                            method="post"
-                                                            action="/negotiations/{{ negotiation.id }}/delete/"
-                                                            onsubmit="return confirm('Удалить запись переговоров?');"
-                                                            class="inline-form"
-                                                        >
-                                                            {% csrf_token %}
-                                                            <button type="submit" class="link-button danger-link">
-                                                                удалить
-                                                            </button>
-                                                        </form>
+{% include "directory/negotiation_actions.html" with negotiation=negotiation %}
                                                     </div>
                                                 {% endfor %}
                                             </details>
@@ -781,7 +761,7 @@
                     {% for status in selection_statuses %}
                         <option value="{{ status.id }}"
                             {% if selection_status_id == status.id|stringformat:"s" %}selected{% endif %}>
-                            {{ status.name }}
+                            {% if status.name == "Отказ" %}Не готов{% else %}{{ status.name }}{% endif %}
                         </option>
                     {% endfor %}
                 </select>
@@ -890,7 +870,7 @@
                                 >
                                     {% for status in selection_statuses %}
                                         <option value="{{ status.id }}" {% if item.selection.status_id == status.id %}selected{% endif %}>
-                                            {{ status.name }}
+                                            {% if status.name == "Отказ" %}Не готов{% else %}{{ status.name }}{% endif %}
                                         </option>
                                     {% endfor %}
                                 </select>
@@ -929,24 +909,14 @@
                                         {{ item.last_negotiation.comment|linebreaksbr }}
                                     </div>
 
-                                    <form
-                                        method="post"
-                                        action="/negotiations/{{ item.last_negotiation.id }}/delete/"
-                                        onsubmit="return confirm('Удалить последнюю запись переговоров?');"
-                                        class="inline-form"
-                                    >
-                                        {% csrf_token %}
-                                        <button type="submit" class="link-button danger-link">
-                                            удалить
-                                        </button>
-                                    </form>
+{% include "directory/negotiation_actions.html" with negotiation=item.last_negotiation %}
                                 </div>
                             {% else %}
                                 <div class="small muted">Записей нет.</div>
                             {% endif %}
 
                             {% if item.old_negotiations %}
-                                <details class="negotiation-history">
+                                <details class="negotiation-history" data-history-selection="{{ item.selection.id }}">
                                     <summary>
                                         История: {{ item.old_negotiations|length }}
                                     </summary>
@@ -962,17 +932,7 @@
                                                 {{ negotiation.comment|linebreaksbr }}
                                             </div>
 
-                                            <form
-                                                method="post"
-                                                action="/negotiations/{{ negotiation.id }}/delete/"
-                                                onsubmit="return confirm('Удалить запись переговоров?');"
-                                                class="inline-form"
-                                            >
-                                                {% csrf_token %}
-                                                <button type="submit" class="link-button danger-link">
-                                                    удалить
-                                                </button>
-                                            </form>
+{% include "directory/negotiation_actions.html" with negotiation=negotiation %}
                                         </div>
                                     {% endfor %}
                                 </details>
@@ -1240,9 +1200,28 @@
         });
 
         const scrollStorageKey = `project-scroll:${window.location.pathname}`;
+        const layoutStorageKey = `${scrollStorageKey}:layout`;
         const savedScrollPosition = sessionStorage.getItem(scrollStorageKey);
 
         if (savedScrollPosition !== null) {
+            try {
+                const layout = JSON.parse(sessionStorage.getItem(layoutStorageKey) || 'null');
+                if (layout) {
+                    document.querySelectorAll('.work-section').forEach(section => {
+                        const expanded = layout.sections.includes(section.id);
+                        section.classList.toggle('is-collapsed', !expanded);
+                        section.querySelector('.work-section-content').hidden = !expanded;
+                        section.querySelectorAll('[data-section-toggle]').forEach(button => {
+                            button.setAttribute('aria-expanded', String(expanded));
+                            if (button.classList.contains('section-toggle-button')) button.textContent = expanded ? '−' : '+';
+                        });
+                    });
+                    document.querySelectorAll('[data-history-selection]').forEach(history => {
+                        history.open = layout.histories.includes(history.dataset.historySelection);
+                    });
+                }
+            } catch (_) {}
+            sessionStorage.removeItem(layoutStorageKey);
             sessionStorage.removeItem(scrollStorageKey);
             window.requestAnimationFrame(() => {
                 window.scrollTo(0, Number(savedScrollPosition));
@@ -1251,8 +1230,13 @@
         }
 
         document.querySelectorAll("form[data-preserve-scroll]").forEach((form) => {
-            form.addEventListener("submit", () => {
+            form.addEventListener("submit", (event) => {
+                if (event.defaultPrevented) return;
                 sessionStorage.setItem(scrollStorageKey, String(window.scrollY));
+                sessionStorage.setItem(layoutStorageKey, JSON.stringify({
+                    sections: Array.from(document.querySelectorAll('.work-section:not(.is-collapsed)'), section => section.id),
+                    histories: Array.from(document.querySelectorAll('[data-history-selection][open]'), history => history.dataset.historySelection),
+                }));
             });
         });
 

@@ -17,6 +17,19 @@ class ExecutorDuplicateTests(TestCase):
     def test_login_required(self):
         self.assertEqual(self.client.get(self.url, {"last_name": "Иванов"}).status_code, 302)
 
+    def test_executor_admin_button_permissions(self):
+        self.client.force_login(self.user)
+        url = reverse("executor_detail", args=[self.executor.pk])
+        self.assertNotContains(self.client.get(url), "Открыть в админке")
+        self.user.is_staff = True
+        self.user.save()
+        self.assertContains(self.client.get(url), "Открыть в админке")
+        self.user.groups.add(Group.objects.get(name="Только просмотр"))
+        self.assertNotContains(self.client.get(url), "Открыть в админке")
+        self.user.is_superuser = True
+        self.user.save()
+        self.assertContains(self.client.get(url), "Открыть в админке")
+
     def test_matches_exact_surname_ignoring_case_and_spaces(self):
         self.client.force_login(self.user)
         matches = self.client.get(self.url, {"last_name": " иВАНОВ "}).json()["matches"]

@@ -1,6 +1,10 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
+from datetime import timedelta
+from io import BytesIO
+from openpyxl import load_workbook
 
 from .forms import ProjectForm
 
@@ -312,6 +316,49 @@ class ProjectSelectionAutosaveTests(TestCase):
         self.assertContains(response, "Анна Петрова")
         self.assertContains(response, "· tester")
 
+    def test_negotiation_edit_and_delete_permissions(self):
+        from .models import SelectionNegotiation
+        from django.utils import timezone
+        other = get_user_model().objects.create_user(username="other-author")
+        note = SelectionNegotiation.objects.create(selection=self.selection, user=self.user,
+            event_date=timezone.localdate(), comment="Исходный текст")
+        edit_url = reverse("edit_selection_negotiation", args=[note.pk])
+        delete_url = reverse("delete_selection_negotiation", args=[note.pk])
+        self.client.force_login(other)
+        self.assertEqual(self.client.post(edit_url, {"comment": "Чужая правка"}).status_code, 403)
+        self.assertEqual(self.client.post(delete_url).status_code, 403)
+        note.refresh_from_db()
+        self.assertEqual(note.comment, "Исходный текст")
+        self.client.force_login(self.user)
+        self.assertEqual(self.client.get(delete_url).status_code, 405)
+        self.assertEqual(self.client.post(edit_url, {"comment": " "}).status_code, 400)
+        self.assertEqual(self.client.post(edit_url, {"comment": "Исправленный текст"}).status_code, 302)
+        note.refresh_from_db()
+        self.assertEqual(note.comment, "Исправленный текст")
+        self.assertEqual(note.user_id, self.user.pk)
+        other.is_staff = True
+        other.save()
+        self.client.force_login(other)
+        self.assertEqual(self.client.post(edit_url, {"comment": "Правка администратора"}).status_code, 302)
+        response = self.client.post(delete_url)
+        self.assertRedirects(response, reverse("project_detail", args=[self.project.pk]))
+        self.assertFalse(SelectionNegotiation.objects.filter(pk=note.pk).exists())
+
+    def test_negotiation_actions_visibility(self):
+        from .models import SelectionNegotiation
+        from django.utils import timezone
+        other = get_user_model().objects.create_user(username="private-author")
+        ProjectSpecialtyNeed.objects.create(project=self.project, specialty=self.specialty)
+        note = SelectionNegotiation.objects.create(selection=self.selection, user=other,
+            event_date=timezone.localdate(), comment="Чужая запись")
+        self.client.force_login(self.user)
+        url = reverse("project_detail", args=[self.project.pk])
+        self.assertNotContains(self.client.get(url), reverse("delete_selection_negotiation", args=[note.pk]))
+        self.client.force_login(other)
+        page = self.client.get(url)
+        self.assertContains(page, reverse("edit_selection_negotiation", args=[note.pk]))
+        self.assertContains(page, "data-preserve-scroll")
+
     def test_empty_offer_amount_is_saved_as_null(self):
         self.client.force_login(self.user)
 
@@ -555,3 +602,77 @@ class ExecutorListTests(TestCase):
         )
         self.assertNotContains(response, "Открыть карточку")
         self.assertNotContains(response, "Открыть в админке")
+
+    def test_list_shows_creation_date_and_supports_date_sorting(self):
+        older = timezone.now() - timedelta(days=2)
+        Executor.objects.filter(pk=self.revit_executor.pk).update(created_at=older)
+
+        newest_first = self.client.get(reverse("executor_list"), {"sort": "created_desc"})
+        oldest_first = self.client.get(reverse("executor_list"), {"sort": "created_asc"})
+
+        self.assertContains(newest_first, "Дата добавления")
+        self.assertEqual(newest_first.context["items"][0]["executor"], self.autocad_executor)
+        self.assertEqual(oldest_first.context["items"][0]["executor"], self.revit_executor)
+
+    def test_shift_selection_script_is_present(self):
+        response = self.client.get(reverse("executor_list"))
+
+        self.assertContains(response, "event.shiftKey")
+        self.assertContains(response, "bulkChecks.slice")
+
+    def test_latest_negotiation_and_configurable_columns(self):
+        from .models import SelectionNegotiation
+        project = Project.objects.create(name="Объект для ссылки", object_type=ObjectType.objects.create(name="Тест"))
+        selection = ProjectSelection.objects.create(project=project, executor=self.revit_executor,
+                                                   specialty=self.specialty_ar, status=SelectionStatus.objects.create(name="Новый"))
+        SelectionNegotiation.objects.create(selection=selection, user=self.user, event_date=timezone.localdate(), comment="Старая запись")
+        latest = SelectionNegotiation.objects.create(selection=selection, user=self.user,
+                                                     event_date=timezone.localdate() - timedelta(days=1), comment="Последняя добавленная запись")
+        response = self.client.get(reverse("executor_list"))
+        item = next(item for item in response.context["items"] if item["executor"] == self.revit_executor)
+        self.assertEqual(item["last_negotiation"], latest)
+        self.assertContains(response, reverse("project_detail", args=[project.pk]))
+        self.assertContains(response, "Последняя добавленная запись")
+        self.assertContains(response, "Настроить столбцы")
+        self.assertIn(("city", "Город"), response.context["optional_fields"])
+
+    def test_export_is_available_only_to_admin(self):
+        url = reverse("export_executors")
+
+        self.assertEqual(
+            self.client.post(url, {"executor_ids": self.revit_executor.pk}).status_code,
+            403,
+        )
+        self.assertNotContains(self.client.get(reverse("executor_list")), "Выгрузить в Excel")
+
+        self.user.is_staff = True
+        self.user.save(update_fields=["is_staff"])
+        self.assertContains(self.client.get(reverse("executor_list")), "Выгрузить в Excel")
+
+    def test_admin_can_export_selected_executors_in_import_format(self):
+        self.user.is_staff = True
+        self.user.save(update_fields=["is_staff"])
+        self.revit_executor.phone = "+79990000001"
+        self.revit_executor.email = "architect@example.com"
+        self.revit_executor.general_comment = "Проверенный исполнитель"
+        self.revit_executor.save()
+
+        response = self.client.post(
+            reverse("export_executors"),
+            {"executor_ids": [self.revit_executor.pk]},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response["Content-Type"],
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        workbook = load_workbook(BytesIO(response.content), data_only=True)
+        worksheet = workbook["Для импорта"]
+        self.assertEqual(worksheet.cell(2, 1).value, "Архитектор")
+        self.assertEqual(worksheet.cell(2, 4).value, "+79990000001")
+        self.assertEqual(worksheet.cell(2, 5).value, "architect@example.com")
+        self.assertEqual(worksheet.cell(2, 7).value, "Активный")
+        self.assertEqual(worksheet.cell(2, 13).value, "Revit")
+        self.assertEqual(worksheet.cell(2, 15).value, "АР")
+        self.assertEqual(worksheet.cell(2, 16).value, "Проверенный исполнитель")

@@ -57,6 +57,8 @@
                 <select name="sort" id="sort">
                     <option value="name" {% if sort == "name" %}selected{% endif %}>По ФИО</option>
                     <option value="status" {% if sort == "status" %}selected{% endif %}>По статусу</option>
+                    <option value="created_desc" {% if sort == "created_desc" %}selected{% endif %}>Сначала новые</option>
+                    <option value="created_asc" {% if sort == "created_asc" %}selected{% endif %}>Сначала старые</option>
                 </select>
             </div>
         </div>
@@ -93,10 +95,21 @@
 <div class="card">
     <div class="executor-list-heading">
         <h2>Найдено: {{ items|length }}</h2>
-        <button type="button" class="button" id="bulk-add-open" disabled>Добавить выбранных в проект (<span id="bulk-selected-count">0</span>)</button>
+        <div class="executor-list-actions">
+            {% if not request.read_only %}
+                {% if request.user.is_staff or request.user.is_superuser %}
+                    <form method="post" action="{% url 'export_executors' %}" id="executor-export-form">
+                        {% csrf_token %}
+                        <button type="submit" class="button secondary-button" id="executor-export" disabled>Выгрузить в Excel</button>
+                    </form>
+                {% endif %}
+            {% endif %}
+            <button type="button" class="button" id="bulk-add-open" disabled>Добавить выбранных в проект (<span id="bulk-selected-count">0</span>)</button>
+        </div>
     </div>
     {% if items %}
-        <p class="small muted">Потяните границу заголовка, чтобы изменить ширину столбца.</p>
+        <details><summary>Настроить столбцы</summary><div id="executor-column-options" style="display:flex;flex-wrap:wrap;gap:12px;padding:12px 0"></div></details>
+        <p class="small muted">Потяните границу заголовка, чтобы изменить ширину столбца. Удерживайте Shift, чтобы выбрать диапазон исполнителей.</p>
         <div class="table-wrap executor-table-wrap">
             <table class="executor-table" data-resizable-table>
                     <colgroup>
@@ -106,8 +119,11 @@
                     <col data-column-key="contacts" style="width: 180px;">
                     <col data-column-key="software" style="width: 120px;">
                     <col data-column-key="status" style="width: 140px;">
+                    <col data-column-key="created" style="width: 120px;">
                     <col data-column-key="projects" style="width: 260px;">
                     <col data-column-key="comment" style="width: 230px;">
+                    <col data-column-key="negotiation" style="width: 280px;">
+                    {% for key, label in optional_fields %}<col data-column-key="{{ key }}" data-optional="true" style="width:180px;">{% endfor %}
                 </colgroup>
                 <thead>
                     <tr>
@@ -117,8 +133,11 @@
                         <th>Контакты<span class="column-resizer" aria-hidden="true"></span></th>
                         <th>ПО<span class="column-resizer" aria-hidden="true"></span></th>
                         <th>Статус<span class="column-resizer" aria-hidden="true"></span></th>
+                        <th>Дата добавления<span class="column-resizer" aria-hidden="true"></span></th>
                         <th>Последние проекты<span class="column-resizer" aria-hidden="true"></span></th>
                         <th>Последний комментарий<span class="column-resizer" aria-hidden="true"></span></th>
+                        <th>Последний комментарий из подбора<span class="column-resizer" aria-hidden="true"></span></th>
+                        {% for key, label in optional_fields %}<th>{{ label }}<span class="column-resizer" aria-hidden="true"></span></th>{% endfor %}
                     </tr>
                 </thead>
                 <tbody>
@@ -156,10 +175,11 @@
                                 {% endif %}
                                 {% if item.executor.status_comment %}<br><span class="small muted">{{ item.executor.status_comment }}</span>{% endif %}
                             </td>
+                            <td data-sort-value="{{ item.executor.created_at|date:'U' }}">{{ item.executor.created_at|date:"d.m.Y H:i" }}</td>
                             <td>
                                 {% if item.last_projects %}
                                     {% for project in item.last_projects %}
-                                        <strong>{{ project.project }}</strong>
+                                        <a href="{% url 'project_detail' project.project_id %}"><strong>{{ project.project }}</strong></a>
                                         <span class="small muted">({{ project.status }})</span><br>
                                         <span class="small muted">
                                             {{ project.specialty }} /
@@ -174,6 +194,14 @@
                                     {{ item.last_comment.comment }}<br><span class="small muted">{{ item.last_comment.created_at|date:"d.m.Y H:i" }}</span>
                                 {% else %}—{% endif %}
                             </td>
+                            <td>
+                                {% if item.last_negotiation %}
+                                    <a href="{% url 'project_detail' item.negotiation_project.id %}">{{ item.negotiation_project.name }}</a><br>
+                                    {{ item.last_negotiation.comment|linebreaksbr }}<br>
+                                    <span class="small muted">{{ item.last_negotiation.created_at|date:"d.m.Y H:i" }} · {{ item.last_negotiation.user.get_full_name|default:item.last_negotiation.user.username }}</span>
+                                {% else %}—{% endif %}
+                            </td>
+                            {% for value in item.optional_values %}<td>{{ value|default_if_none:"—"|default:"—" }}</td>{% endfor %}
                         </tr>
                     {% endfor %}
                 </tbody>
@@ -265,14 +293,45 @@
 
         const storageKey = "executor-table-column-widths";
         const columns = Array.from(table.querySelectorAll("col[data-column-key]"));
-        const savedWidths = JSON.parse(localStorage.getItem(storageKey) || "{}");
+        let savedWidths = {}, visibility = {};
+        const visibilityKey = 'executor-visible-columns-v1';
+        try { savedWidths = JSON.parse(localStorage.getItem(storageKey) || '{}') || {}; } catch (_) {}
+        try { visibility = JSON.parse(localStorage.getItem(visibilityKey) || '{}') || {}; } catch (_) {}
+        const headers = Array.from(table.querySelectorAll('thead th'));
+        const rows = Array.from(table.querySelectorAll('tr'));
+        const cellsByColumn = new Map(columns.map((column, index) => [column.dataset.columnKey, rows.map(row => row.cells[index])]));
+        const options = document.getElementById('executor-column-options');
+        columns.forEach((column, index) => {
+            if (index === 0) return; // Selection stays at the left edge.
+            const key = column.dataset.columnKey;
+            const label = document.createElement('label');
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.disabled = key === 'name';
+            checkbox.checked = key in visibility ? Boolean(visibility[key]) : !column.dataset.optional;
+            if (key === 'name') checkbox.checked = true;
+            label.append(checkbox, ' ' + headers[index].textContent.trim());
+            const entry = document.createElement('div');
+            entry.append(label);
+            options.append(entry);
+            const apply = () => {
+                const display = checkbox.checked ? '' : 'none';
+                column.style.display = display;
+                cellsByColumn.get(key).forEach(cell => { cell.style.display = display; });
+            };
+            checkbox.addEventListener('change', () => {
+                apply(); visibility[key] = checkbox.checked;
+                try { localStorage.setItem(visibilityKey, JSON.stringify(visibility)); } catch (_) {}
+            });
+            apply();
+        });
 
         columns.forEach((column) => {
             const savedWidth = savedWidths[column.dataset.columnKey];
             if (savedWidth) column.style.width = `${savedWidth}px`;
         });
 
-        table.querySelectorAll("th").forEach((header, index) => {
+        headers.forEach((header, index) => {
             const handle = header.querySelector(".column-resizer");
             const column = columns[index];
             if (!handle || !column) return;
@@ -281,6 +340,7 @@
 
             handle.addEventListener("pointerdown", (event) => {
                 event.preventDefault();
+                event.stopPropagation();
                 startX = event.clientX;
                 startWidth = column.getBoundingClientRect().width;
                 document.body.classList.add("is-resizing-column");
@@ -295,9 +355,9 @@
 
                     const widths = {};
                     columns.forEach((item) => {
-                        widths[item.dataset.columnKey] = Math.round(item.getBoundingClientRect().width);
+                        widths[item.dataset.columnKey] = parseFloat(item.style.width) || 180;
                     });
-                    localStorage.setItem(storageKey, JSON.stringify(widths));
+                    try { localStorage.setItem(storageKey, JSON.stringify(widths)); } catch (_) {}
                 };
 
                 document.addEventListener("pointermove", resize);
@@ -305,17 +365,100 @@
             });
         });
 
+        const collator = new Intl.Collator('ru', {numeric: true, sensitivity: 'base'});
+        let sortKey = null, ascending = true;
+        headers.forEach((header, index) => {
+            if (index === 0) return;
+            const key = columns[index].dataset.columnKey;
+            const button = document.createElement('button');
+            button.type = 'button';
+            const title = header.firstChild.textContent.trim();
+            header.firstChild.remove();
+            button.textContent = title;
+            button.style.cssText = 'background:none;color:inherit;border:0;padding:0;text-align:left;font:inherit;cursor:pointer';
+            header.prepend(button);
+            button.addEventListener('click', () => {
+                ascending = sortKey === key ? !ascending : true; sortKey = key;
+                headers.forEach(h => h.removeAttribute('aria-sort'));
+                header.setAttribute('aria-sort', ascending ? 'ascending' : 'descending');
+                headers.forEach(h => { const b = h.querySelector('button'); if (b) b.textContent = b.dataset.title; });
+                button.textContent = title + (ascending ? ' ▲' : ' ▼');
+                const entries = Array.from(table.tBodies[0].rows);
+                const value = row => {
+                    const cell = cellsByColumn.get(key)[rows.indexOf(row)];
+                    if (cell.dataset.sortValue !== undefined) return Number(cell.dataset.sortValue);
+                    const select = cell.querySelector('select');
+                    if (select) return select.selectedOptions[0]?.textContent.trim() || '';
+                    const link = cell.querySelector('a');
+                    return (link ? link.textContent : cell.textContent).trim();
+                };
+                entries.sort((a, b) => {
+                    const left = value(a), right = value(b);
+                    const result = typeof left === 'number' && typeof right === 'number' ? left - right : collator.compare(String(left), String(right));
+                    return ascending ? result : -result;
+                });
+                entries.forEach(row => table.tBodies[0].append(row));
+                bulkChecks.splice(0, bulkChecks.length, ...table.querySelectorAll('.bulk-executor-check'));
+            });
+            button.dataset.title = title;
+        });
+        const tableWrap = table.closest('.executor-table-wrap');
+        tableWrap.tabIndex = 0;
+        tableWrap.setAttribute('aria-label', 'Таблица исполнителей с прокруткой');
+        const scrollBar = document.createElement('div');
+        scrollBar.className = 'executor-floating-scroll';
+        scrollBar.tabIndex = 0;
+        scrollBar.setAttribute('role', 'region');
+        scrollBar.setAttribute('aria-label', 'Горизонтальная прокрутка исполнителей');
+        const scrollTrack = document.createElement('div');
+        scrollBar.append(scrollTrack);
+        document.body.append(scrollBar);
+        const updateScrollBar = () => {
+            const rect = tableWrap.getBoundingClientRect();
+            const visible = rect.top < window.innerHeight - 24 && rect.bottom > window.innerHeight
+                && tableWrap.scrollWidth > tableWrap.clientWidth;
+            scrollBar.hidden = !visible;
+            scrollBar.style.left = `${rect.left}px`;
+            scrollBar.style.width = `${tableWrap.clientWidth}px`;
+            scrollTrack.style.width = `${tableWrap.scrollWidth}px`;
+            scrollBar.scrollLeft = tableWrap.scrollLeft;
+            table.style.setProperty('--selection-width', `${headers[0].getBoundingClientRect().width}px`);
+        };
+        scrollBar.addEventListener('scroll', () => { tableWrap.scrollLeft = scrollBar.scrollLeft; });
+        tableWrap.addEventListener('scroll', () => { scrollBar.scrollLeft = tableWrap.scrollLeft; });
+        window.addEventListener('scroll', updateScrollBar, {passive: true});
+        window.addEventListener('resize', updateScrollBar);
+        const tableObserver = new ResizeObserver(updateScrollBar);
+        tableObserver.observe(table);
+        tableObserver.observe(tableWrap);
+        updateScrollBar();
+
         const bulkChecks = Array.from(document.querySelectorAll(".bulk-executor-check"));
         const bulkOpen = document.querySelector("#bulk-add-open");
         const bulkCount = document.querySelector("#bulk-selected-count");
         const bulkModal = document.querySelector("#bulk-add-modal");
+        const exportForm = document.querySelector("#executor-export-form");
+        const exportButton = document.querySelector("#executor-export");
+        let lastChecked = null;
         const updateBulkState = () => {
             const selected = bulkChecks.filter((check) => check.checked);
             bulkCount.textContent = selected.length;
             bulkOpen.disabled = selected.length === 0;
+            if (exportButton) exportButton.disabled = selected.length === 0;
             document.querySelector("#bulk-select-all").checked = bulkChecks.length > 0 && selected.length === bulkChecks.length;
+            document.querySelector("#bulk-select-all").indeterminate = selected.length > 0 && selected.length < bulkChecks.length;
         };
-        bulkChecks.forEach((check) => check.addEventListener("change", updateBulkState));
+        bulkChecks.forEach((check) => check.addEventListener("click", (event) => {
+            if (event.shiftKey && lastChecked) {
+                const start = bulkChecks.indexOf(lastChecked);
+                const end = bulkChecks.indexOf(check);
+                bulkChecks.slice(Math.min(start, end), Math.max(start, end) + 1).forEach((item) => {
+                    item.checked = check.checked;
+                });
+            }
+            lastChecked = check;
+            updateBulkState();
+        }));
         document.querySelector("#bulk-select-all")?.addEventListener("change", (event) => {
             bulkChecks.forEach((check) => { check.checked = event.target.checked; });
             updateBulkState();
@@ -329,6 +472,16 @@
                 input.name = "executor_ids";
                 input.value = check.value;
                 event.currentTarget.appendChild(input);
+            });
+        });
+        exportForm?.addEventListener("submit", () => {
+            exportForm.querySelectorAll('input[name="executor_ids"]').forEach((input) => input.remove());
+            bulkChecks.filter((check) => check.checked).forEach((check) => {
+                const input = document.createElement("input");
+                input.type = "hidden";
+                input.name = "executor_ids";
+                input.value = check.value;
+                exportForm.appendChild(input);
             });
         });
 

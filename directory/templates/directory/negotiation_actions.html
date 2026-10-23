@@ -1,0 +1,19 @@
+{% if not request.read_only %}
+{% if request.user.id == negotiation.user_id or request.user.is_staff or request.user.is_superuser %}
+<details class="negotiation-edit">
+    <summary>редактировать</summary>
+    <form method="post" action="{% url 'edit_selection_negotiation' negotiation.id %}" data-preserve-scroll>
+        {% csrf_token %}
+        <textarea name="comment" rows="3" required aria-label="Текст переговоров">{{ negotiation.comment }}</textarea>
+        <div class="negotiation-edit-actions">
+            <button type="submit" class="negotiation-save-button">Сохранить</button>
+            <button type="button" class="link-button" onclick="this.closest('details').open = false">Отмена</button>
+        </div>
+    </form>
+</details>
+<form method="post" action="{% url 'delete_selection_negotiation' negotiation.id %}" class="inline-form" data-preserve-scroll onsubmit="return confirm('Удалить запись переговоров?');">
+    {% csrf_token %}
+    <button type="submit" class="link-button danger-link">удалить</button>
+</form>
+{% endif %}
+{% endif %}

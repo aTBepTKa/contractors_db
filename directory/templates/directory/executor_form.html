@@ -18,6 +18,7 @@
 <div class="card">
     <form method="post" class="executor-form">
         {% csrf_token %}
+        <p class="small muted">Поля со звёздочкой (*) обязательны для заполнения.</p>
 
         {% if form.errors %}
             <div class="form-errors">

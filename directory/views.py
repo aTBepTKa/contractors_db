@@ -3,10 +3,12 @@ from django.contrib import messages
 from django.conf import settings
 from django.core.management.base import CommandError
 from django.db import IntegrityError, models, transaction
-from django.http import FileResponse, JsonResponse
+from django.http import FileResponse, HttpResponse, HttpResponseBadRequest, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
+from io import BytesIO
+from openpyxl import load_workbook
 from pathlib import Path
 
 from .management.commands.import_executors import headers_are_supported, read_xlsx_safe, save_prepared, validate_rows
@@ -98,6 +100,74 @@ def executor_import_template(request):
         filename="Шаблон_импорта_исполнителей.xlsx",
         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
+
+
+@login_required
+@require_POST
+def export_executors(request):
+    if not (request.user.is_staff or request.user.is_superuser):
+        return HttpResponseForbidden("Выгрузка доступна только администратору.")
+
+    executor_ids = []
+    for value in request.POST.getlist("executor_ids"):
+        try:
+            executor_id = int(value)
+        except (TypeError, ValueError):
+            continue
+        if executor_id not in executor_ids:
+            executor_ids.append(executor_id)
+
+    if not executor_ids:
+        return HttpResponseBadRequest("Выберите хотя бы одного исполнителя.")
+
+    executors_by_id = {
+        executor.id: executor
+        for executor in Executor.objects.filter(id__in=executor_ids)
+        .select_related("employment_type", "status", "contact_source")
+        .prefetch_related("software", "executor_specialties__specialty")
+    }
+    executors = [executors_by_id[executor_id] for executor_id in executor_ids if executor_id in executors_by_id]
+    if not executors:
+        return HttpResponseBadRequest("Выбранные исполнители не найдены.")
+
+    template_path = Path(settings.BASE_DIR) / "directory" / "static" / "directory" / "files" / "executor_import_template.xlsx"
+    workbook = load_workbook(template_path)
+    worksheet = workbook["Для импорта"]
+
+    for row_number, executor in enumerate(executors, 2):
+        worksheet.cell(row_number, 1, executor.last_name)
+        worksheet.cell(row_number, 2, executor.first_name)
+        worksheet.cell(row_number, 3, executor.middle_name)
+        worksheet.cell(row_number, 4, executor.phone)
+        worksheet.cell(row_number, 5, executor.email)
+        worksheet.cell(row_number, 6, str(executor.employment_type or ""))
+        worksheet.cell(row_number, 7, str(executor.status))
+        worksheet.cell(row_number, 8, str(executor.contact_source or ""))
+        worksheet.cell(row_number, 9, executor.source_comment)
+        worksheet.cell(row_number, 10, executor.city)
+        worksheet.cell(row_number, 11, executor.work_start_year)
+        worksheet.cell(row_number, 12, executor.birth_year)
+        worksheet.cell(
+            row_number,
+            13,
+            "; ".join(sorted(program.name for program in executor.software.all())),
+        )
+        worksheet.cell(row_number, 14, executor.software_comment)
+        worksheet.cell(
+            row_number,
+            15,
+            "; ".join(sorted(item.specialty.code for item in executor.executor_specialties.all())),
+        )
+        worksheet.cell(row_number, 16, executor.general_comment)
+
+    output = BytesIO()
+    workbook.save(output)
+    response = HttpResponse(
+        output.getvalue(),
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    response["Content-Disposition"] = 'attachment; filename="executors_export.xlsx"'
+    return response
 
 
 @login_required
@@ -209,6 +279,11 @@ def bulk_add_executors(request):
 
 @login_required
 def executor_list(request):
+    optional_fields = [("city", "Город"), ("employment_type", "Тип занятости"),
+                       ("birth_year", "Год рождения"), ("work_start_year", "Начал работать с"),
+                       ("contact_source", "Источник контакта"), ("source_comment", "Комментарий к источнику"),
+                       ("general_comment", "Общий комментарий"), ("status_comment", "Комментарий к статусу"),
+                       ("software_comment", "Комментарий по ПО"), ("created_by", "Добавил")]
     specialty_ids = request.GET.getlist("specialty")
     software_ids = request.GET.getlist("software")
     search_query = request.GET.get("q", "").strip()
@@ -228,13 +303,15 @@ def executor_list(request):
 
     executors = (
         Executor.objects
-        .select_related("status", "employment_type")
+        .select_related("status", "employment_type", "contact_source", "created_by")
         .prefetch_related(
             "executor_specialties__specialty",
             "software",
             "project_selections__project",
             "project_selections__specialty",
             "project_selections__status",
+            "project_selections__project__status",
+            "project_selections__negotiations__user",
             "comments",
         )
     )
@@ -268,6 +345,10 @@ def executor_list(request):
 
     if sort == "status":
         executors = executors.order_by("status__name", "last_name", "first_name")
+    elif sort == "created_desc":
+        executors = executors.order_by("-created_at", "-id")
+    elif sort == "created_asc":
+        executors = executors.order_by("created_at", "id")
     else:
         executors = executors.order_by("last_name", "first_name", "middle_name")
 
@@ -297,6 +378,7 @@ def executor_list(request):
                 last_projects.append(
                     {
                         "project": selection.project.name,
+                        "project_id": selection.project_id,
                         "specialty": selection.specialty.code,
                         "selection_status": selection.status.name if selection.status else "—",
                         "amount": format_money(selection.offer_amount),
@@ -309,6 +391,9 @@ def executor_list(request):
                 break
 
         last_comment = executor.comments.all().order_by("-created_at").first()
+        negotiations = [(note, selection.project) for selection in selections
+                        for note in selection.negotiations.all()]
+        latest = max(negotiations, key=lambda pair: (pair[0].created_at, pair[0].pk), default=None)
 
         result_items.append(
             {
@@ -318,11 +403,15 @@ def executor_list(request):
                 "software_items": software_items,
                 "last_projects": last_projects,
                 "last_comment": last_comment,
+                "last_negotiation": latest[0] if latest else None,
+                "negotiation_project": latest[1] if latest else None,
+                "optional_values": [getattr(executor, key) for key, label in optional_fields],
             }
         )
 
     context = {
         "items": result_items,
+        "optional_fields": optional_fields,
         "specialties": Specialty.objects.filter(is_active=True).order_by("code"),
         "software_options": Software.objects.filter(is_active=True).order_by("name"),
         "executor_statuses": executor_statuses,
@@ -1388,19 +1477,36 @@ def executor_delete(request, executor_id):
     )
 
 @login_required
+@require_POST
 def delete_selection_negotiation(request, negotiation_id):
     negotiation = get_object_or_404(
         SelectionNegotiation.objects.select_related("selection__project"),
         id=negotiation_id,
     )
 
+    if not (request.user.pk == negotiation.user_id or request.user.is_staff or request.user.is_superuser):
+        return HttpResponseForbidden("Изменять запись переговоров может только её автор или администратор.")
+
     project_id = negotiation.selection.project.id
-    selection_id = negotiation.selection.id
 
     if request.method == "POST":
         negotiation.delete()
 
-    return redirect(f"/projects/{project_id}/#selection-{selection_id}")
+    return redirect("project_detail", project_id=project_id)
+
+
+@login_required
+@require_POST
+def edit_selection_negotiation(request, negotiation_id):
+    negotiation = get_object_or_404(SelectionNegotiation.objects.select_related("selection"), pk=negotiation_id)
+    if not (request.user.pk == negotiation.user_id or request.user.is_staff or request.user.is_superuser):
+        return HttpResponseForbidden("Изменять запись переговоров может только её автор или администратор.")
+    comment = request.POST.get("comment", "").strip()
+    if not comment:
+        return HttpResponseBadRequest("Введите текст переговоров.")
+    negotiation.comment = comment
+    negotiation.save(update_fields=["comment"])
+    return redirect("project_detail", project_id=negotiation.selection.project_id)
 
 @login_required
 def delete_project_specialty_need(request, need_id):
