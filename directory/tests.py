@@ -316,6 +316,49 @@ class ProjectSelectionAutosaveTests(TestCase):
         self.assertContains(response, "Анна Петрова")
         self.assertContains(response, "· tester")
 
+    def test_negotiation_edit_and_delete_permissions(self):
+        from .models import SelectionNegotiation
+        from django.utils import timezone
+        other = get_user_model().objects.create_user(username="other-author")
+        note = SelectionNegotiation.objects.create(selection=self.selection, user=self.user,
+            event_date=timezone.localdate(), comment="Исходный текст")
+        edit_url = reverse("edit_selection_negotiation", args=[note.pk])
+        delete_url = reverse("delete_selection_negotiation", args=[note.pk])
+        self.client.force_login(other)
+        self.assertEqual(self.client.post(edit_url, {"comment": "Чужая правка"}).status_code, 403)
+        self.assertEqual(self.client.post(delete_url).status_code, 403)
+        note.refresh_from_db()
+        self.assertEqual(note.comment, "Исходный текст")
+        self.client.force_login(self.user)
+        self.assertEqual(self.client.get(delete_url).status_code, 405)
+        self.assertEqual(self.client.post(edit_url, {"comment": " "}).status_code, 400)
+        self.assertEqual(self.client.post(edit_url, {"comment": "Исправленный текст"}).status_code, 302)
+        note.refresh_from_db()
+        self.assertEqual(note.comment, "Исправленный текст")
+        self.assertEqual(note.user_id, self.user.pk)
+        other.is_staff = True
+        other.save()
+        self.client.force_login(other)
+        self.assertEqual(self.client.post(edit_url, {"comment": "Правка администратора"}).status_code, 302)
+        response = self.client.post(delete_url)
+        self.assertRedirects(response, reverse("project_detail", args=[self.project.pk]))
+        self.assertFalse(SelectionNegotiation.objects.filter(pk=note.pk).exists())
+
+    def test_negotiation_actions_visibility(self):
+        from .models import SelectionNegotiation
+        from django.utils import timezone
+        other = get_user_model().objects.create_user(username="private-author")
+        ProjectSpecialtyNeed.objects.create(project=self.project, specialty=self.specialty)
+        note = SelectionNegotiation.objects.create(selection=self.selection, user=other,
+            event_date=timezone.localdate(), comment="Чужая запись")
+        self.client.force_login(self.user)
+        url = reverse("project_detail", args=[self.project.pk])
+        self.assertNotContains(self.client.get(url), reverse("delete_selection_negotiation", args=[note.pk]))
+        self.client.force_login(other)
+        page = self.client.get(url)
+        self.assertContains(page, reverse("edit_selection_negotiation", args=[note.pk]))
+        self.assertContains(page, "data-preserve-scroll")
+
     def test_empty_offer_amount_is_saved_as_null(self):
         self.client.force_login(self.user)
 

@@ -1870,6 +1870,15 @@ button:hover,
     cursor: pointer;
 }
 
+.executor-form label.required-field::after { content: " *"; color: #b91c1c; }
+.negotiation-edit { display: inline-block; font-size: 12px; color: #64748b; }
+.negotiation-edit summary { cursor: pointer; }
+.negotiation-edit[open] { display: block; }
+.negotiation-edit textarea { width: 100%; }
+.negotiation-edit-actions { display: flex; align-items: center; gap: 12px; margin-top: 6px; }
+.negotiation-edit-actions .negotiation-save-button { background: #2563eb; color: #fff; padding: 6px 12px; font-size: 12px; }
+.negotiation-edit-actions .link-button { color: #475569; }
+
 .executor-table-wrap {
     overflow: auto;
     max-height: calc(100vh - 32px);

@@ -1477,19 +1477,36 @@ def executor_delete(request, executor_id):
     )
 
 @login_required
+@require_POST
 def delete_selection_negotiation(request, negotiation_id):
     negotiation = get_object_or_404(
         SelectionNegotiation.objects.select_related("selection__project"),
         id=negotiation_id,
     )
 
+    if not (request.user.pk == negotiation.user_id or request.user.is_staff or request.user.is_superuser):
+        return HttpResponseForbidden("Изменять запись переговоров может только её автор или администратор.")
+
     project_id = negotiation.selection.project.id
-    selection_id = negotiation.selection.id
 
     if request.method == "POST":
         negotiation.delete()
 
-    return redirect(f"/projects/{project_id}/#selection-{selection_id}")
+    return redirect("project_detail", project_id=project_id)
+
+
+@login_required
+@require_POST
+def edit_selection_negotiation(request, negotiation_id):
+    negotiation = get_object_or_404(SelectionNegotiation.objects.select_related("selection"), pk=negotiation_id)
+    if not (request.user.pk == negotiation.user_id or request.user.is_staff or request.user.is_superuser):
+        return HttpResponseForbidden("Изменять запись переговоров может только её автор или администратор.")
+    comment = request.POST.get("comment", "").strip()
+    if not comment:
+        return HttpResponseBadRequest("Введите текст переговоров.")
+    negotiation.comment = comment
+    negotiation.save(update_fields=["comment"])
+    return redirect("project_detail", project_id=negotiation.selection.project_id)
 
 @login_required
 def delete_project_specialty_need(request, need_id):

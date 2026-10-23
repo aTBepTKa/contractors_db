@@ -34,4 +34,5 @@ urlpatterns = [
     path("selections/<int:selection_id>/negotiations/add/", views.add_selection_negotiation, name="add_selection_negotiation"),
     path("selections/<int:selection_id>/delete/", views.delete_project_selection, name="delete_project_selection"),
     path("negotiations/<int:negotiation_id>/delete/", views.delete_selection_negotiation, name="delete_selection_negotiation"),
+    path("negotiations/<int:negotiation_id>/edit/", views.edit_selection_negotiation, name="edit_selection_negotiation"),
 ]
