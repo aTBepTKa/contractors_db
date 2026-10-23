@@ -1781,6 +1781,17 @@ button:hover,
     margin-top: 16px;
 }
 
+.executor-list-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.executor-list-actions form {
+    margin: 0;
+}
+
 .filter-checkbox-group {
     min-width: 0;
     margin: 0;

@@ -57,6 +57,8 @@
                 <select name="sort" id="sort">
                     <option value="name" {% if sort == "name" %}selected{% endif %}>По ФИО</option>
                     <option value="status" {% if sort == "status" %}selected{% endif %}>По статусу</option>
+                    <option value="created_desc" {% if sort == "created_desc" %}selected{% endif %}>Сначала новые</option>
+                    <option value="created_asc" {% if sort == "created_asc" %}selected{% endif %}>Сначала старые</option>
                 </select>
             </div>
         </div>
@@ -93,10 +95,20 @@
 <div class="card">
     <div class="executor-list-heading">
         <h2>Найдено: {{ items|length }}</h2>
-        <button type="button" class="button" id="bulk-add-open" disabled>Добавить выбранных в проект (<span id="bulk-selected-count">0</span>)</button>
+        <div class="executor-list-actions">
+            {% if not request.read_only %}
+                {% if request.user.is_staff or request.user.is_superuser %}
+                    <form method="post" action="{% url 'export_executors' %}" id="executor-export-form">
+                        {% csrf_token %}
+                        <button type="submit" class="button secondary-button" id="executor-export" disabled>Выгрузить в Excel</button>
+                    </form>
+                {% endif %}
+            {% endif %}
+            <button type="button" class="button" id="bulk-add-open" disabled>Добавить выбранных в проект (<span id="bulk-selected-count">0</span>)</button>
+        </div>
     </div>
     {% if items %}
-        <p class="small muted">Потяните границу заголовка, чтобы изменить ширину столбца.</p>
+        <p class="small muted">Потяните границу заголовка, чтобы изменить ширину столбца. Удерживайте Shift, чтобы выбрать диапазон исполнителей.</p>
         <div class="table-wrap executor-table-wrap">
             <table class="executor-table" data-resizable-table>
                     <colgroup>
@@ -106,6 +118,7 @@
                     <col data-column-key="contacts" style="width: 180px;">
                     <col data-column-key="software" style="width: 120px;">
                     <col data-column-key="status" style="width: 140px;">
+                    <col data-column-key="created" style="width: 120px;">
                     <col data-column-key="projects" style="width: 260px;">
                     <col data-column-key="comment" style="width: 230px;">
                 </colgroup>
@@ -117,6 +130,7 @@
                         <th>Контакты<span class="column-resizer" aria-hidden="true"></span></th>
                         <th>ПО<span class="column-resizer" aria-hidden="true"></span></th>
                         <th>Статус<span class="column-resizer" aria-hidden="true"></span></th>
+                        <th>Дата создания<span class="column-resizer" aria-hidden="true"></span></th>
                         <th>Последние проекты<span class="column-resizer" aria-hidden="true"></span></th>
                         <th>Последний комментарий<span class="column-resizer" aria-hidden="true"></span></th>
                     </tr>
@@ -156,6 +170,7 @@
                                 {% endif %}
                                 {% if item.executor.status_comment %}<br><span class="small muted">{{ item.executor.status_comment }}</span>{% endif %}
                             </td>
+                            <td>{{ item.executor.created_at|date:"d.m.Y H:i" }}</td>
                             <td>
                                 {% if item.last_projects %}
                                     {% for project in item.last_projects %}
@@ -309,13 +324,27 @@
         const bulkOpen = document.querySelector("#bulk-add-open");
         const bulkCount = document.querySelector("#bulk-selected-count");
         const bulkModal = document.querySelector("#bulk-add-modal");
+        const exportForm = document.querySelector("#executor-export-form");
+        const exportButton = document.querySelector("#executor-export");
+        let lastChecked = null;
         const updateBulkState = () => {
             const selected = bulkChecks.filter((check) => check.checked);
             bulkCount.textContent = selected.length;
             bulkOpen.disabled = selected.length === 0;
+            if (exportButton) exportButton.disabled = selected.length === 0;
             document.querySelector("#bulk-select-all").checked = bulkChecks.length > 0 && selected.length === bulkChecks.length;
         };
-        bulkChecks.forEach((check) => check.addEventListener("change", updateBulkState));
+        bulkChecks.forEach((check) => check.addEventListener("click", (event) => {
+            if (event.shiftKey && lastChecked) {
+                const start = bulkChecks.indexOf(lastChecked);
+                const end = bulkChecks.indexOf(check);
+                bulkChecks.slice(Math.min(start, end), Math.max(start, end) + 1).forEach((item) => {
+                    item.checked = check.checked;
+                });
+            }
+            lastChecked = check;
+            updateBulkState();
+        }));
         document.querySelector("#bulk-select-all")?.addEventListener("change", (event) => {
             bulkChecks.forEach((check) => { check.checked = event.target.checked; });
             updateBulkState();
@@ -329,6 +358,16 @@
                 input.name = "executor_ids";
                 input.value = check.value;
                 event.currentTarget.appendChild(input);
+            });
+        });
+        exportForm?.addEventListener("submit", () => {
+            exportForm.querySelectorAll('input[name="executor_ids"]').forEach((input) => input.remove());
+            bulkChecks.filter((check) => check.checked).forEach((check) => {
+                const input = document.createElement("input");
+                input.type = "hidden";
+                input.name = "executor_ids";
+                input.value = check.value;
+                exportForm.appendChild(input);
             });
         });
 

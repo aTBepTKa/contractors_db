@@ -11,6 +11,7 @@ urlpatterns = [
     path("executors/import/template/", views.executor_import_template, name="executor_import_template"),
     path("executors/import/", views.executor_import, name="executor_import"),
     path("executors/import/confirm/", views.executor_import_confirm, name="executor_import_confirm"),
+    path("executors/export/", views.export_executors, name="export_executors"),
     path("executors/bulk-add/", views.bulk_add_executors, name="bulk_add_executors"),
     path("executors/add/", views.executor_create, name="executor_create"),
     path("executors/duplicates/", views.executor_duplicates, name="executor_duplicates"),

@@ -3,10 +3,12 @@ from django.contrib import messages
 from django.conf import settings
 from django.core.management.base import CommandError
 from django.db import IntegrityError, models, transaction
-from django.http import FileResponse, JsonResponse
+from django.http import FileResponse, HttpResponse, HttpResponseBadRequest, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
+from io import BytesIO
+from openpyxl import load_workbook
 from pathlib import Path
 
 from .management.commands.import_executors import headers_are_supported, read_xlsx_safe, save_prepared, validate_rows
@@ -98,6 +100,74 @@ def executor_import_template(request):
         filename="Шаблон_импорта_исполнителей.xlsx",
         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
+
+
+@login_required
+@require_POST
+def export_executors(request):
+    if not (request.user.is_staff or request.user.is_superuser):
+        return HttpResponseForbidden("Выгрузка доступна только администратору.")
+
+    executor_ids = []
+    for value in request.POST.getlist("executor_ids"):
+        try:
+            executor_id = int(value)
+        except (TypeError, ValueError):
+            continue
+        if executor_id not in executor_ids:
+            executor_ids.append(executor_id)
+
+    if not executor_ids:
+        return HttpResponseBadRequest("Выберите хотя бы одного исполнителя.")
+
+    executors_by_id = {
+        executor.id: executor
+        for executor in Executor.objects.filter(id__in=executor_ids)
+        .select_related("employment_type", "status", "contact_source")
+        .prefetch_related("software", "executor_specialties__specialty")
+    }
+    executors = [executors_by_id[executor_id] for executor_id in executor_ids if executor_id in executors_by_id]
+    if not executors:
+        return HttpResponseBadRequest("Выбранные исполнители не найдены.")
+
+    template_path = Path(settings.BASE_DIR) / "directory" / "static" / "directory" / "files" / "executor_import_template.xlsx"
+    workbook = load_workbook(template_path)
+    worksheet = workbook["Для импорта"]
+
+    for row_number, executor in enumerate(executors, 2):
+        worksheet.cell(row_number, 1, executor.last_name)
+        worksheet.cell(row_number, 2, executor.first_name)
+        worksheet.cell(row_number, 3, executor.middle_name)
+        worksheet.cell(row_number, 4, executor.phone)
+        worksheet.cell(row_number, 5, executor.email)
+        worksheet.cell(row_number, 6, str(executor.employment_type or ""))
+        worksheet.cell(row_number, 7, str(executor.status))
+        worksheet.cell(row_number, 8, str(executor.contact_source or ""))
+        worksheet.cell(row_number, 9, executor.source_comment)
+        worksheet.cell(row_number, 10, executor.city)
+        worksheet.cell(row_number, 11, executor.work_start_year)
+        worksheet.cell(row_number, 12, executor.birth_year)
+        worksheet.cell(
+            row_number,
+            13,
+            "; ".join(sorted(program.name for program in executor.software.all())),
+        )
+        worksheet.cell(row_number, 14, executor.software_comment)
+        worksheet.cell(
+            row_number,
+            15,
+            "; ".join(sorted(item.specialty.code for item in executor.executor_specialties.all())),
+        )
+        worksheet.cell(row_number, 16, executor.general_comment)
+
+    output = BytesIO()
+    workbook.save(output)
+    response = HttpResponse(
+        output.getvalue(),
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    response["Content-Disposition"] = 'attachment; filename="executors_export.xlsx"'
+    return response
 
 
 @login_required
@@ -268,6 +338,10 @@ def executor_list(request):
 
     if sort == "status":
         executors = executors.order_by("status__name", "last_name", "first_name")
+    elif sort == "created_desc":
+        executors = executors.order_by("-created_at", "-id")
+    elif sort == "created_asc":
+        executors = executors.order_by("created_at", "id")
     else:
         executors = executors.order_by("last_name", "first_name", "middle_name")
 
