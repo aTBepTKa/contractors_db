@@ -1871,8 +1871,21 @@ button:hover,
 }
 
 .executor-table-wrap {
-    overflow-x: auto;
+    overflow: auto;
+    max-height: calc(100vh - 32px);
+    scrollbar-gutter: stable;
 }
+
+.executor-floating-scroll {
+    position: fixed;
+    bottom: 0;
+    z-index: 15;
+    overflow-x: scroll;
+    background: #fff;
+    border-top: 1px solid #cbd5e1;
+}
+.executor-floating-scroll[hidden] { display: none; }
+.executor-floating-scroll > div { height: 1px; }
 
 .executor-list-heading {
     display: flex;
@@ -1921,8 +1934,25 @@ button:hover,
 }
 
 .executor-table th {
-    position: relative;
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    background: #eef2f7;
 }
+
+.executor-table { border-collapse: separate; border-spacing: 0; }
+.executor-table th:first-child,
+.executor-table td:first-child { position: sticky; left: 0; }
+.executor-table th:nth-child(2),
+.executor-table td:nth-child(2) { position: sticky; left: var(--selection-width, 44px); }
+.executor-table td:first-child,
+.executor-table td:nth-child(2) { z-index: 2; background: #fff; }
+.executor-table tr.inactive td:first-child,
+.executor-table tr.inactive td:nth-child(2) { background: #f1f5f9; }
+.executor-table th:first-child,
+.executor-table th:nth-child(2) { z-index: 4; }
+.executor-table th:nth-child(2),
+.executor-table td:nth-child(2) { box-shadow: 1px 0 #cbd5e1; }
 
 .candidate-table {
     min-width: 980px;

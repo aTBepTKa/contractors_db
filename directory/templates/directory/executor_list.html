@@ -175,7 +175,7 @@
                                 {% endif %}
                                 {% if item.executor.status_comment %}<br><span class="small muted">{{ item.executor.status_comment }}</span>{% endif %}
                             </td>
-                            <td>{{ item.executor.created_at|date:"d.m.Y H:i" }}</td>
+                            <td data-sort-value="{{ item.executor.created_at|date:'U' }}">{{ item.executor.created_at|date:"d.m.Y H:i" }}</td>
                             <td>
                                 {% if item.last_projects %}
                                     {% for project in item.last_projects %}
@@ -299,19 +299,25 @@
         try { visibility = JSON.parse(localStorage.getItem(visibilityKey) || '{}') || {}; } catch (_) {}
         const headers = Array.from(table.querySelectorAll('thead th'));
         const rows = Array.from(table.querySelectorAll('tr'));
+        const cellsByColumn = new Map(columns.map((column, index) => [column.dataset.columnKey, rows.map(row => row.cells[index])]));
+        const options = document.getElementById('executor-column-options');
         columns.forEach((column, index) => {
-            if (index < 2) return; // Selection and name always remain available.
+            if (index === 0) return; // Selection stays at the left edge.
             const key = column.dataset.columnKey;
             const label = document.createElement('label');
             const checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
+            checkbox.disabled = key === 'name';
             checkbox.checked = key in visibility ? Boolean(visibility[key]) : !column.dataset.optional;
+            if (key === 'name') checkbox.checked = true;
             label.append(checkbox, ' ' + headers[index].textContent.trim());
-            document.getElementById('executor-column-options').append(label);
+            const entry = document.createElement('div');
+            entry.append(label);
+            options.append(entry);
             const apply = () => {
                 const display = checkbox.checked ? '' : 'none';
                 column.style.display = display;
-                rows.forEach(row => { if (row.cells[index]) row.cells[index].style.display = display; });
+                cellsByColumn.get(key).forEach(cell => { cell.style.display = display; });
             };
             checkbox.addEventListener('change', () => {
                 apply(); visibility[key] = checkbox.checked;
@@ -325,7 +331,7 @@
             if (savedWidth) column.style.width = `${savedWidth}px`;
         });
 
-        table.querySelectorAll("th").forEach((header, index) => {
+        headers.forEach((header, index) => {
             const handle = header.querySelector(".column-resizer");
             const column = columns[index];
             if (!handle || !column) return;
@@ -334,6 +340,7 @@
 
             handle.addEventListener("pointerdown", (event) => {
                 event.preventDefault();
+                event.stopPropagation();
                 startX = event.clientX;
                 startWidth = column.getBoundingClientRect().width;
                 document.body.classList.add("is-resizing-column");
@@ -357,6 +364,74 @@
                 document.addEventListener("pointerup", stop);
             });
         });
+
+        const collator = new Intl.Collator('ru', {numeric: true, sensitivity: 'base'});
+        let sortKey = null, ascending = true;
+        headers.forEach((header, index) => {
+            if (index === 0) return;
+            const key = columns[index].dataset.columnKey;
+            const button = document.createElement('button');
+            button.type = 'button';
+            const title = header.firstChild.textContent.trim();
+            header.firstChild.remove();
+            button.textContent = title;
+            button.style.cssText = 'background:none;color:inherit;border:0;padding:0;text-align:left;font:inherit;cursor:pointer';
+            header.prepend(button);
+            button.addEventListener('click', () => {
+                ascending = sortKey === key ? !ascending : true; sortKey = key;
+                headers.forEach(h => h.removeAttribute('aria-sort'));
+                header.setAttribute('aria-sort', ascending ? 'ascending' : 'descending');
+                headers.forEach(h => { const b = h.querySelector('button'); if (b) b.textContent = b.dataset.title; });
+                button.textContent = title + (ascending ? ' ▲' : ' ▼');
+                const entries = Array.from(table.tBodies[0].rows);
+                const value = row => {
+                    const cell = cellsByColumn.get(key)[rows.indexOf(row)];
+                    if (cell.dataset.sortValue !== undefined) return Number(cell.dataset.sortValue);
+                    const select = cell.querySelector('select');
+                    if (select) return select.selectedOptions[0]?.textContent.trim() || '';
+                    const link = cell.querySelector('a');
+                    return (link ? link.textContent : cell.textContent).trim();
+                };
+                entries.sort((a, b) => {
+                    const left = value(a), right = value(b);
+                    const result = typeof left === 'number' && typeof right === 'number' ? left - right : collator.compare(String(left), String(right));
+                    return ascending ? result : -result;
+                });
+                entries.forEach(row => table.tBodies[0].append(row));
+                bulkChecks.splice(0, bulkChecks.length, ...table.querySelectorAll('.bulk-executor-check'));
+            });
+            button.dataset.title = title;
+        });
+        const tableWrap = table.closest('.executor-table-wrap');
+        tableWrap.tabIndex = 0;
+        tableWrap.setAttribute('aria-label', 'Таблица исполнителей с прокруткой');
+        const scrollBar = document.createElement('div');
+        scrollBar.className = 'executor-floating-scroll';
+        scrollBar.tabIndex = 0;
+        scrollBar.setAttribute('role', 'region');
+        scrollBar.setAttribute('aria-label', 'Горизонтальная прокрутка исполнителей');
+        const scrollTrack = document.createElement('div');
+        scrollBar.append(scrollTrack);
+        document.body.append(scrollBar);
+        const updateScrollBar = () => {
+            const rect = tableWrap.getBoundingClientRect();
+            const visible = rect.top < window.innerHeight - 24 && rect.bottom > window.innerHeight
+                && tableWrap.scrollWidth > tableWrap.clientWidth;
+            scrollBar.hidden = !visible;
+            scrollBar.style.left = `${rect.left}px`;
+            scrollBar.style.width = `${tableWrap.clientWidth}px`;
+            scrollTrack.style.width = `${tableWrap.scrollWidth}px`;
+            scrollBar.scrollLeft = tableWrap.scrollLeft;
+            table.style.setProperty('--selection-width', `${headers[0].getBoundingClientRect().width}px`);
+        };
+        scrollBar.addEventListener('scroll', () => { tableWrap.scrollLeft = scrollBar.scrollLeft; });
+        tableWrap.addEventListener('scroll', () => { scrollBar.scrollLeft = tableWrap.scrollLeft; });
+        window.addEventListener('scroll', updateScrollBar, {passive: true});
+        window.addEventListener('resize', updateScrollBar);
+        const tableObserver = new ResizeObserver(updateScrollBar);
+        tableObserver.observe(table);
+        tableObserver.observe(tableWrap);
+        updateScrollBar();
 
         const bulkChecks = Array.from(document.querySelectorAll(".bulk-executor-check"));
         const bulkOpen = document.querySelector("#bulk-add-open");
