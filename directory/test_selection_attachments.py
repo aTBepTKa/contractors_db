@@ -95,7 +95,7 @@ class SelectionAttachmentTests(TestCase):
         self.client.force_login(self.viewer)
         response = self.client.get(download)
         self.assertEqual(response.status_code, 200)
-        response.close()
+        self.assertEqual(b"".join(response.streaming_content), b"%PDF-1.4 test")
         self.assertEqual(self.upload().status_code, 403)
         self.assertEqual(self.client.post(delete).status_code, 403)
         page = self.client.get(reverse("project_detail", args=[self.project.pk]))
