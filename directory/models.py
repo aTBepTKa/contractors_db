@@ -1,3 +1,6 @@
+from pathlib import Path
+from uuid import uuid4
+
 from django.conf import settings
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
@@ -545,3 +548,29 @@ class SelectionNegotiation(models.Model):
 
     def __str__(self):
         return f"{self.selection} — {self.event_date:%d.%m.%Y}"
+
+
+def selection_attachment_path(instance, filename):
+    return f"selection_attachments/{instance.selection_id}/{uuid4().hex}{Path(filename).suffix.lower()}"
+
+
+class SelectionAttachment(models.Model):
+    selection = models.ForeignKey(
+        ProjectSelection, on_delete=models.CASCADE,
+        related_name="attachments", verbose_name="Строка подбора",
+    )
+    file = models.FileField("Файл", upload_to=selection_attachment_path, max_length=255)
+    original_name = models.CharField("Название файла", max_length=255)
+    size = models.PositiveBigIntegerField("Размер, байт")
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, verbose_name="Загрузил",
+    )
+    created_at = models.DateTimeField("Дата загрузки", auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at", "-pk"]
+        verbose_name = "Файл подбора"
+        verbose_name_plural = "Файлы подбора"
+
+    def __str__(self):
+        return self.original_name

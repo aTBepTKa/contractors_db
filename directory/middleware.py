@@ -5,7 +5,7 @@ from django.utils.deprecation import MiddlewareMixin
 READ_ONLY_GROUP = "Только просмотр"
 READ_VIEWS = {
     "home", "executor_search", "executor_list", "executor_detail", "executor_import_template",
-    "project_list", "project_detail",
+    "project_list", "project_detail", "download_selection_attachment",
 }
 
 
