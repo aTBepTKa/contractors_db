@@ -2141,3 +2141,9 @@ button:hover,
 .import-preview-table-wrap {
     max-height: 65vh;
 }
+
+.selection-attachments { margin-top: 10px; overflow-wrap: anywhere; }
+.selection-attachments summary { cursor: pointer; font-size: 13px; }
+.selection-attachment { padding: 8px 0; border-bottom: 1px solid #ddd; }
+.selection-attachment-upload { display: grid; gap: 8px; margin-top: 10px; }
+.selection-attachment-upload input[type="file"] { display: block; max-width: 100%; margin-top: 6px; }

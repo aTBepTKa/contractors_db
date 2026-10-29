@@ -3,7 +3,7 @@ from django.contrib import messages
 from django.conf import settings
 from django.core.management.base import CommandError
 from django.db import IntegrityError, models, transaction
-from django.http import FileResponse, HttpResponse, HttpResponseBadRequest, HttpResponseForbidden, JsonResponse
+from django.http import Http404, FileResponse, HttpResponse, HttpResponseBadRequest, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
@@ -25,6 +25,7 @@ from .models import (
     ProjectSelection,
     ProjectSpecialtyNeed,
     SelectionNegotiation,
+    SelectionAttachment,
     SelectionStatus,
     Software,
     Specialty,
@@ -895,7 +896,7 @@ def project_detail(request, project_id):
     all_project_selections = list(
         project.selections
         .select_related("specialty", "executor", "executor__status", "status")
-        .prefetch_related("negotiations")
+        .prefetch_related("negotiations", "attachments__uploaded_by")
         .all()
     )
 
@@ -1526,3 +1527,75 @@ def delete_project_specialty_need(request, need_id):
             need.delete()
 
     return redirect("project_detail", project_id=project_id)
+
+
+ATTACHMENT_EXTENSIONS = {".pdf", ".doc", ".docx", ".xls", ".xlsx", ".jpg", ".jpeg", ".png", ".zip"}
+ATTACHMENT_MAX_SIZE = 20 * 1024 * 1024
+
+
+def attachment_selection_url(selection):
+    return f"/projects/{selection.project_id}/?specialty={selection.specialty_id}#selection-{selection.pk}"
+
+
+@login_required
+@require_POST
+def upload_selection_attachments(request, selection_id):
+    selection = get_object_or_404(ProjectSelection, pk=selection_id)
+    uploads = request.FILES.getlist("files")
+    errors = []
+    if not uploads:
+        errors.append("Выберите файлы для загрузки.")
+    for upload in uploads:
+        if Path(upload.name).suffix.lower() not in ATTACHMENT_EXTENSIONS:
+            errors.append(f"{upload.name}: неподдерживаемый формат файла.")
+        if upload.size > ATTACHMENT_MAX_SIZE:
+            errors.append(f"{upload.name}: размер файла не должен превышать 20 МБ.")
+        if not upload.size:
+            errors.append(f"{upload.name}: файл пустой.")
+    if errors:
+        for error in errors:
+            messages.error(request, error)
+        return redirect(attachment_selection_url(selection))
+
+    saved_files = []
+    try:
+        with transaction.atomic():
+            for upload in uploads:
+                attachment = SelectionAttachment(
+                    selection=selection, original_name=upload.name,
+                    size=upload.size, uploaded_by=request.user,
+                )
+                attachment.file.save(upload.name, upload, save=False)
+                saved_files.append((attachment.file.storage, attachment.file.name))
+                attachment.save()
+    except Exception:
+        # Storage writes are not rolled back by the database transaction.
+        for storage, name in saved_files:
+            storage.delete(name)
+        raise
+    messages.success(request, f"Загружено файлов: {len(uploads)}.")
+    return redirect(attachment_selection_url(selection))
+
+
+@login_required
+@require_GET
+def download_selection_attachment(request, attachment_id):
+    attachment = get_object_or_404(SelectionAttachment, pk=attachment_id)
+    try:
+        stream = attachment.file.open("rb")
+    except FileNotFoundError:
+        raise Http404("Файл не найден в хранилище.") from None
+    return FileResponse(
+        stream, as_attachment=True, filename=attachment.original_name,
+        content_type="application/octet-stream",
+    )
+
+
+@login_required
+@require_POST
+def delete_selection_attachment(request, attachment_id):
+    attachment = get_object_or_404(SelectionAttachment.objects.select_related("selection"), pk=attachment_id)
+    target = attachment_selection_url(attachment.selection)
+    attachment.delete()
+    messages.success(request, "Файл удалён.")
+    return redirect(target)

@@ -1,0 +1,30 @@
+<details class="selection-attachments">
+    <summary>Файлы ({{ selection.attachments.all|length }})</summary>
+    {% for attachment in selection.attachments.all %}
+        <div class="selection-attachment">
+            <a href="{% url 'download_selection_attachment' attachment.id %}">{{ attachment.original_name }}</a>
+            <div class="small muted">
+                {{ attachment.size|filesizeformat }} · {{ attachment.created_at|date:"d.m.Y H:i" }}
+                · {{ attachment.uploaded_by.get_full_name|default:attachment.uploaded_by.username }}
+            </div>
+            {% if not request.read_only %}
+                <form method="post" action="{% url 'delete_selection_attachment' attachment.id %}" onsubmit="return confirm('Удалить файл?');" data-preserve-scroll>
+                    {% csrf_token %}
+                    <button type="submit" class="link-button danger-link">Удалить файл</button>
+                </form>
+            {% endif %}
+        </div>
+    {% empty %}
+        <p class="small muted">Файлов пока нет.</p>
+    {% endfor %}
+    {% if not request.read_only %}
+        <form method="post" enctype="multipart/form-data" action="{% url 'upload_selection_attachments' selection.id %}" class="selection-attachment-upload" data-preserve-scroll>
+            {% csrf_token %}
+            <label class="small">Прикрепить файлы
+                <input type="file" name="files" multiple required accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.zip">
+            </label>
+            <div class="small muted">PDF, Word, Excel, JPG/PNG, ZIP. До 20 МБ на файл.</div>
+            <button type="submit" class="compact-button secondary-button">Загрузить</button>
+        </form>
+    {% endif %}
+</details>

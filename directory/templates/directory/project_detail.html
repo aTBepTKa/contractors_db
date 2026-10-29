@@ -318,6 +318,7 @@
                                             class="compact-textarea autosave-control"
                                             data-autosave-field="comment"
                                         >{{ row.selection.comment }}</textarea>
+                                        {% include "directory/selection_attachments.html" with selection=row.selection %}
                                     </div>
 
                                     <div class="work-cell work-negotiations">

@@ -29,6 +29,10 @@ urlpatterns = [
     path("projects/<int:project_id>/status/", views.update_project_status, name="update_project_status"),
     path("project-specialty-needs/<int:need_id>/delete/", views.delete_project_specialty_need, name="delete_project_specialty_need"),
 
+    path("selections/<int:selection_id>/attachments/upload/", views.upload_selection_attachments, name="upload_selection_attachments"),
+    path("selection-attachments/<int:attachment_id>/download/", views.download_selection_attachment, name="download_selection_attachment"),
+    path("selection-attachments/<int:attachment_id>/delete/", views.delete_selection_attachment, name="delete_selection_attachment"),
+
     # Строки подбора
     path("selections/<int:selection_id>/update/", views.update_project_selection, name="update_project_selection"),
     path("selections/<int:selection_id>/negotiations/add/", views.add_selection_negotiation, name="add_selection_negotiation"),
